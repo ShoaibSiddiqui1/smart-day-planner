@@ -6,7 +6,7 @@ Includes user accounts and their associated tasks
 
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey
 from sqlalchemy.orm import relationship
-from database import Base ## this will come from DB connection files
+from .database import Base ## this will come from DB connection files
 
 class User(Base):
   """
