@@ -20,7 +20,7 @@ class UserBase(BaseModel):
 
 
 '''
-Min length for user password must be 8 digits
+Min length for user password must be at least 8 digits
 '''
 class UserCreate(UserBase):
   password: str = Field(..., min_length = 8)
