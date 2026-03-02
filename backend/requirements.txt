@@ -1,0 +1,18 @@
+# Web framework
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+
+# Database
+sqlalchemy==2.0.35
+psycopg2-binary==2.9.9      # PostgreSQL driver
+alembic==1.13.3             # Database migrations
+
+# Validation & settings
+pydantic[email]==2.9.2
+pydantic-settings==2.5.2
+
+# Auth (JWT is handled by the auth team's module)
+passlib[bcrypt]==1.7.4
+
+# Environment
+python-dotenv==1.0.1
