@@ -3,6 +3,8 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from . import models, schemas, auth, database  # import my files
 from fastapi.middleware.cors import CORSMiddleware
+from . import algorithms
+from datetime import datetime, timedelta
 
 # init app
 app = FastAPI(title = "Smart Day Planer API")
@@ -80,7 +82,7 @@ def create_task(
     user_id = auth.get_user_id_from_token(token)
     
     #  2. Create the task linked to that user
-    new_task = models.Task(**task.dict(), owner_id=user_id)
+    new_task = models.Task(**task.model_dump(), owner_id=user_id)
     
     db.add(new_task)
     db.commit()
@@ -152,3 +154,31 @@ def update_task(
     db.refresh(db_task)
     
     return db_task
+
+
+@app.get("/tasks/optimized", response_model=list[schemas.Task])
+def get_optimized_tasks(
+    lat: float, 
+    lon: float, 
+    db: Session = Depends(database.get_database), 
+    token: str = Depends(auth.oauth2_scheme)
+):
+    # 1. Identify the user from the JWT [cite: 31, 36]
+    user_id = auth.get_user_id_from_token(token)
+    
+    # 2. Fetch all their tasks from the DB [cite: 49]
+    tasks = db.query(models.Task).filter(models.Task.owner_id == user_id).all()
+    
+    if not tasks:
+        return []
+
+    # 3. Define the "Start State"
+    # The frontend sends current GPS coords; we use current server time
+    start_coords = (lat, lon)
+    start_time = datetime.now()
+
+    # 4. Run your new Optimization Algorithm [cite: 46, 58]
+    optimized_list = algorithms.optimize_schedule(tasks, start_coords, start_time)
+    
+    return optimized_list
+

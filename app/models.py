@@ -4,7 +4,7 @@ It defines the SQLAIchemy ORM models for the Smart Day Planner
 Includes user accounts and their associated tasks
 """
 
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Float, DateTime
 from sqlalchemy.orm import relationship
 from .database import Base ## this will come from DB connection files
 
@@ -38,11 +38,23 @@ class Task(Base):
 
   """
   __tablename__ = "tasks"
-  title = Column(String, index = True)
-  id = Column(Integer, primary_key=True, index=True)
-  description = Column(String)
-  location = Column(String)
-  priority = Column(Integer, default = 1)
-  owner_id = Column(Integer, ForeignKey('users.id'))
-  owner = relationship("User", back_populates = 'tasks')
+    
+id = Column(Integer, primary_key=True, index=True)
+title = Column(String, index=True)
+description = Column(String)
+
+# NEW: Specific fields for optimization [cite: 5, 47]
+location = Column(String)  # Physical address
+latitude = Column(Float, nullable=True)   # Needed for GPS/Route math
+longitude = Column(Float, nullable=True)  # Needed for GPS/Route math
+
+# NEW: Time constraints 
+duration_minutes = Column(Integer, default=30) # How long the task takes
+start_window = Column(DateTime, nullable=True) # Earliest start time
+end_window = Column(DateTime, nullable=True)   # Latest finish time
+
+priority = Column(Integer, default=1) # 1=Low, 5=High [cite: 6]
+
+owner_id = Column(Integer, ForeignKey('users.id'))
+owner = relationship("User", back_populates='tasks')
 

@@ -9,6 +9,7 @@ Core functionalities for this module
 '''
 from pydantic import BaseModel, EmailStr, Field
 from typing import List, Optional
+from datetime import datetime
 
 #---------------------user-----------------------------------
 '''
@@ -45,7 +46,16 @@ class TaskBase(BaseModel):
   title: str
   description: Optional[str] = None
   location: str # will be the address used in the algor later
+
+  latitude: Optional[float] = None
+  longitude: Optional[float] = None
   priority: int = Field(default = 1, ge = 1, le = 5) # prio from 1 to 5. (5 lvls)
+  duration_minutes: int = 30
+
+  # schedeling windows
+  start_window: Optional[datetime] = None
+  end_window: Optional[datetime] = None
+
 
 
 '''
@@ -53,7 +63,6 @@ For creating a task
 '''
 class TaskCreate(TaskBase):
   pass
-
 
 
 '''
@@ -73,4 +82,11 @@ Update functionalitiy
 class TaskUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
+    location: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    priority: Optional[int] = None
+    duration_minutes: Optional[int] = None
+    start_window: Optional[datetime] = None
+    end_window: Optional[datetime] = None
     completed: Optional[bool] = None
