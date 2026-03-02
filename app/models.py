@@ -38,23 +38,22 @@ class Task(Base):
 
   """
   __tablename__ = "tasks"
-    
-id = Column(Integer, primary_key=True, index=True)
-title = Column(String, index=True)
-description = Column(String)
 
-# NEW: Specific fields for optimization [cite: 5, 47]
-location = Column(String)  # Physical address
-latitude = Column(Float, nullable=True)   # Needed for GPS/Route math
-longitude = Column(Float, nullable=True)  # Needed for GPS/Route math
-
-# NEW: Time constraints 
-duration_minutes = Column(Integer, default=30) # How long the task takes
-start_window = Column(DateTime, nullable=True) # Earliest start time
-end_window = Column(DateTime, nullable=True)   # Latest finish time
-
-priority = Column(Integer, default=1) # 1=Low, 5=High [cite: 6]
-
-owner_id = Column(Integer, ForeignKey('users.id'))
-owner = relationship("User", back_populates='tasks')
-
+  id = Column(Integer, primary_key=True, index=True)
+  title = Column(String, index=True)
+  description = Column(String)
+  
+  # Coordinates for your optimization algorithm [cite: 2026-02-23]
+  location = Column(String)
+  latitude = Column(Float, nullable=True)
+  longitude = Column(Float, nullable=True)
+  
+  # Timing logic for the scheduler [cite: 2026-02-09]
+  duration_minutes = Column(Integer, default=30)
+  start_window = Column(DateTime, nullable=True)
+  end_window = Column(DateTime, nullable=True)
+  
+  priority = Column(Integer, default=1)
+  
+  owner_id = Column(Integer, ForeignKey('users.id'))
+  owner = relationship("User", back_populates='tasks')
