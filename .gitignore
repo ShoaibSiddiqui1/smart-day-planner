@@ -142,3 +142,9 @@ venv/
 __pycache__/
 *.pyc
 .env
+
+# hide the token
+.env
+venv/
+__pycache__/
+*.pyc

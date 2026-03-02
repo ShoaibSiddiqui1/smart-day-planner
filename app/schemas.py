@@ -62,5 +62,15 @@ Data returning to frontend
 class Task(TaskBase):
   id: int
   owner_id: int
+  completed: bool
+  
   class Config:
     from_attributes = True
+
+"""
+Update functionalitiy
+"""
+class TaskUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    completed: Optional[bool] = None
