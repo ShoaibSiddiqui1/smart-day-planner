@@ -1,68 +1,101 @@
-import { SafeAreaView, View, Text, TextInput, Pressable, StyleSheet } from "react-native";
-import { useRouter } from "expo-router";
-import { useState } from "react";
+import { SafeAreaView, View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useState } from 'react';
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function Login() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const scheme = useColorScheme() ?? 'light';
+  const theme = Colors[scheme];
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]}>
       <View style={styles.container}>
-        <Text style={styles.title}>Smart Day Planner</Text>
-        <Text style={styles.subtitle}>Login</Text>
+        <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
+          <Text style={[styles.brand, { color: theme.tint }]}>Smart Day Planner</Text>
+          <Text style={[styles.subtitle, { color: theme.subtext }]}>
+            Plan smarter. Move faster. Stay productive.
+          </Text>
 
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          placeholderTextColor="#888"
-          autoCapitalize="none"
-          value={email}
-          onChangeText={setEmail}
-        />
+          <TextInput
+            style={[
+              styles.input,
+              { borderColor: theme.border, color: theme.text, backgroundColor: theme.background },
+            ]}
+            placeholder="Email"
+            placeholderTextColor={theme.subtext}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            value={email}
+            onChangeText={setEmail}
+          />
 
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          placeholderTextColor="#888"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-        />
+          <TextInput
+            style={[
+              styles.input,
+              { borderColor: theme.border, color: theme.text, backgroundColor: theme.background },
+            ]}
+            placeholder="Password"
+            placeholderTextColor={theme.subtext}
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+          />
 
-        <Pressable style={styles.button} onPress={() => router.replace("/(tabs)")}>
-          <Text style={styles.buttonText}>Login</Text>
-        </Pressable>
+          <Pressable style={[styles.button, { backgroundColor: theme.tint }]} onPress={() => router.replace('/(tabs)')}>
+            <Text style={styles.buttonText}>Login</Text>
+          </Pressable>
 
-        <Pressable onPress={() => router.push("/signup")}>
-          <Text style={styles.link}>Don’t have an account? Sign up</Text>
-        </Pressable>
+          <Pressable onPress={() => router.push('/signup')}>
+            <Text style={[styles.link, { color: theme.tint }]}>Don’t have an account? Sign up</Text>
+          </Pressable>
+        </View>
       </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "black" },
-  container: { flex: 1, padding: 20, justifyContent: "center", backgroundColor: "black" },
-  title: { fontSize: 28, fontWeight: "bold", textAlign: "center", color: "white" },
-  subtitle: { fontSize: 18, textAlign: "center", marginBottom: 20, color: "white" },
+  safe: { flex: 1 },
+  container: { flex: 1, justifyContent: 'center', padding: 20 },
+  card: {
+    borderWidth: 1,
+    borderRadius: 24,
+    padding: 22,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 3,
+  },
+  brand: {
+    fontSize: 30,
+    fontWeight: '800',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 15,
+    textAlign: 'center',
+    marginBottom: 22,
+  },
   input: {
     borderWidth: 1,
-    borderColor: "#444",
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 12,
-    color: "white",
+    padding: 14,
+    borderRadius: 14,
+    marginBottom: 14,
+    fontSize: 15,
   },
   button: {
-    backgroundColor: "white",
-    padding: 14,
-    borderRadius: 12,
-    alignItems: "center",
-    marginTop: 6,
+    paddingVertical: 15,
+    borderRadius: 14,
+    alignItems: 'center',
+    marginTop: 4,
   },
-  buttonText: { color: "black", fontWeight: "800", fontSize: 16 },
-  link: { marginTop: 16, textAlign: "center", color: "#2b6cb0", fontSize: 16 },
+  buttonText: { color: 'white', fontWeight: '800', fontSize: 16 },
+  link: { marginTop: 18, textAlign: 'center', fontSize: 15, fontWeight: '600' },
 });
