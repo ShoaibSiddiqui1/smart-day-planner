@@ -11,13 +11,14 @@ from pydantic import BaseModel, EmailStr, Field
 from typing import List, Optional
 from datetime import datetime
 
+
 #---------------------user-----------------------------------
 '''
 Shared proprities for users
 '''
 class UserBase(BaseModel):
-  username: str
-  email:EmailStr
+  username: str = Field(..., min_length=3)
+  email: EmailStr
 
 
 '''
@@ -62,7 +63,8 @@ class TaskBase(BaseModel):
 For creating a task
 '''
 class TaskCreate(TaskBase):
-  pass
+  passlatitude: float 
+  longitude: float
 
 
 '''
@@ -90,3 +92,7 @@ class TaskUpdate(BaseModel):
     start_window: Optional[datetime] = None
     end_window: Optional[datetime] = None
     completed: Optional[bool] = None
+
+
+
+
