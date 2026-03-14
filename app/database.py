@@ -4,14 +4,13 @@ This module sets up the SQLALchemy connection to the PostgreSQL database,
 and creates engine, database sessions, and Base class.
 """
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-"""
-Define database url
-Format: postgresql: // name:passowrd @ host - database name
-"""
-SQLALCHEMY_DATABASE_URL = "postgresql://day_planner_admiss:coke123@localhost/smart_day_planner"
+from .config import settings
+
+SQLALCHEMY_DATABASE_URL = settings.database_url
+
 
 
 """

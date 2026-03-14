@@ -1,11 +1,13 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from . import models, schemas, auth, database  # import my files
+from . import models, schemas, auth, database
 from fastapi.middleware.cors import CORSMiddleware
 from . import algorithms
 from datetime import datetime, timedelta
 
+# Import the initialized settings from schemas
+from .config import settings
 # init app
 app = FastAPI(title = "Smart Day Planer API")
 
@@ -29,22 +31,26 @@ app.add_middleware(
 # create db tables
 models.Base.metadata.create_all(bind = database.engine)
 
+@app.get("/")
+def root():
+    return {"message": "Smart Day Planner API is running!"}
+
 @app.post("/login")
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(database.get_database)):
+    # Manual check for empty fields (FastAPI OAuth2 doesn't do this by default)
+    if not form_data.username or not form_data.password:
+        raise HTTPException(status_code=400, detail="Email and password required")
 
-  # look for the user by email
-  user = db.query(models.User).filter(models.User.email == form_data.username).first()
+    user = db.query(models.User).filter(models.User.email == form_data.username).first()
 
-  # if user not exist or password not match
-  if not user or not auth.verify_password(form_data.password, user.hashed_password):
-    raise HTTPException(
+    if not user or not auth.verify_password(form_data.password, user.hashed_password):
+        raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password")
+            detail="Invalid email or password"
+        )
   
-  # create the token
-  access_token = auth.create_access_token(data={"user_id": user.id})
-    
-  return {"access_token": access_token, "token_type": "bearer"}
+    access_token = auth.create_access_token(data={"user_id": user.id})
+    return {"access_token": access_token, "token_type": "bearer"}
 
 @app.post("/users/", response_model = schemas.UserResponse, status_code = status.HTTP_201_CREATED)
 def create_user (user: schemas.UserCreate, db: Session = Depends(database.get_database)):
@@ -72,7 +78,7 @@ def create_user (user: schemas.UserCreate, db: Session = Depends(database.get_da
   db.refresh(new_user)
   return new_user
 
-@app.post("/tasks", status_code=status.HTTP_201_CREATED)
+@app.post("/tasks", response_model=schemas.Task, status_code=status.HTTP_201_CREATED)
 def create_task(
     task: schemas.TaskCreate, 
     db: Session = Depends(database.get_database),
@@ -146,7 +152,7 @@ def update_task(
         raise HTTPException(status_code=404, detail="Task not found")
 
     # 2. Extract the data sent in the request (excluding unset fields)
-    update_data = task_update.dict(exclude_unset=True)
+    update_data = task_update.model_dump(exclude_unset=True)
 
     # 3. Apply changes and save
     task_query.update(update_data, synchronize_session=False)
@@ -157,28 +163,22 @@ def update_task(
 
 
 @app.get("/tasks/optimized", response_model=list[schemas.Task])
-def get_optimized_tasks(
+async def get_optimized_tasks( # Added async here
     lat: float, 
     lon: float, 
     db: Session = Depends(database.get_database), 
     token: str = Depends(auth.oauth2_scheme)
 ):
-    # 1. Identify the user from the JWT [cite: 31, 36]
     user_id = auth.get_user_id_from_token(token)
-    
-    # 2. Fetch all their tasks from the DB [cite: 49]
     tasks = db.query(models.Task).filter(models.Task.owner_id == user_id).all()
     
     if not tasks:
         return []
 
-    # 3. Define the "Start State"
-    # The frontend sends current GPS coords; we use current server time
     start_coords = (lat, lon)
     start_time = datetime.now()
 
-    # 4. Run your new Optimization Algorithm [cite: 46, 58]
-    optimized_list = algorithms.optimize_schedule(tasks, start_coords, start_time)
+    # FIX: Call the new async function name with 'await'
+    optimized_list = await algorithms.optimize_schedule_smart(tasks, start_coords, start_time)
     
     return optimized_list
-

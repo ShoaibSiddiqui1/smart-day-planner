@@ -54,6 +54,8 @@ class Task(Base):
   end_window = Column(DateTime, nullable=True)
   
   priority = Column(Integer, default=1)
+
+  completed = Column(Boolean, default=False)
   
   owner_id = Column(Integer, ForeignKey('users.id'))
   owner = relationship("User", back_populates='tasks')

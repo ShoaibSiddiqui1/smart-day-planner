@@ -7,18 +7,17 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordBearer
 from fastapi import HTTPException, status
-from dotenv import load_dotenv
 
-# This looks for the .env file and loads the variables
-load_dotenv()
+# CHANGE THIS LINE: Import settings from your config file
+from .config import settings
 
-# Now we pull from the environment
-SECRET_KEY = os.getenv("SECRET_KEY")
-ALGORITHM = os.getenv("ALGORITHM")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
+# UPDATE THESE VARIABLES:
+SECRET_KEY = settings.secret_key
+ALGORITHM = settings.algorithm
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.access_token_expire_minutes
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login") # tells how to get token by FastAPI
-password_manager = CryptContext(schemes = ["bcrypt"], deprecated = "auto")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+password_manager = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 """
 Secure password from plain password
