@@ -1,11 +1,44 @@
-import { SafeAreaView, View, Text, TextInput, Pressable, StyleSheet } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { useRouter } from "expo-router";
 import { useState } from "react";
+import { useAuth } from "@/context/AuthContext";
 
 export default function Login() {
   const router = useRouter();
+  const { login } = useAuth();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async () => {
+    if (!email.trim() || !password) {
+      setError("Email and password are required.");
+      return;
+    }
+
+    setError("");
+    setLoading(true);
+
+    try {
+      await login(email.trim(), password);
+      router.replace("/(tabs)");
+    } catch (e: any) {
+      const detail = e?.response?.data?.detail;
+      setError(detail ?? "Login failed. Please check your credentials.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -18,6 +51,7 @@ export default function Login() {
           placeholder="Email"
           placeholderTextColor="#888"
           autoCapitalize="none"
+          keyboardType="email-address"
           value={email}
           onChangeText={setEmail}
         />
@@ -31,8 +65,18 @@ export default function Login() {
           onChangeText={setPassword}
         />
 
-        <Pressable style={styles.button} onPress={() => router.replace("/(tabs)")}>
-          <Text style={styles.buttonText}>Login</Text>
+        {error ? <Text style={styles.error}>{error}</Text> : null}
+
+        <Pressable style={styles.button} onPress={handleLogin} disabled={loading}>
+          {loading ? (
+            <ActivityIndicator color="black" />
+          ) : (
+            <Text style={styles.buttonText}>Login</Text>
+          )}
+        </Pressable>
+
+        <Pressable onPress={() => router.push("/forgot-password")}>
+          <Text style={styles.link}>Forgot password?</Text>
         </Pressable>
 
         <Pressable onPress={() => router.push("/signup")}>
@@ -56,6 +100,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     color: "white",
   },
+  error: { color: "#ff6b6b", marginBottom: 8, textAlign: "center" },
   button: {
     backgroundColor: "white",
     padding: 14,
