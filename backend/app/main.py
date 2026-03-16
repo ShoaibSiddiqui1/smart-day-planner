@@ -8,8 +8,9 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from .routers import users, tasks 
-from . import models, auth, database
+from .routers import users, tasks , schedules
+from . import models, auth, database, config, algorithms
+
 
 app = FastAPI(title="Smart Day Planner API")
 
@@ -26,8 +27,9 @@ app.add_middleware(
 models.Base.metadata.create_all(bind=database.engine)
 
 # 3. Include Routers
-app.include_router(users.router)
-app.include_router(tasks.router)
+app.include_router(users.router, prefix="/users", tags=["users"])
+app.include_router(tasks.router, prefix="/tasks", tags=["tasks"])
+app.include_router(schedules.router, prefix="/schedules", tags=["schedules"])
 
 # 4. Global Login (Since it links Users and Auth)
 @app.post("/login")

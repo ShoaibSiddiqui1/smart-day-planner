@@ -5,7 +5,6 @@ once the team's JWT auth dependency is available after merging.
 """
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-
 from .. import auth as auth_utils, models, schemas
 from ..database import get_db
 
@@ -29,3 +28,26 @@ def register(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_user)
     return new_user
+
+@router.get("/me", response_model=schemas.UserResponse)
+def get_current_user_profile(
+    current_user: models.User = Depends(auth_utils.get_current_user)
+):
+    return current_user
+
+@router.patch("/me", response_model=schemas.UserResponse)
+def update_user_profile(
+    user_update: schemas.UserUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth_utils.get_current_user)
+):
+    # Convert the incoming Pydantic model to a dict, excluding unset values
+    update_data = user_update.model_dump(exclude_unset=True)
+    
+    for key, value in update_data.items():
+        setattr(current_user, key, value)
+    
+    db.add(current_user)
+    db.commit()
+    db.refresh(current_user)
+    return current_user
