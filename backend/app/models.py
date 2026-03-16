@@ -4,9 +4,22 @@ It defines the SQLAIchemy ORM models for the Smart Day Planner
 Includes user accounts and their associated tasks
 """
 
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Float, DateTime
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Float, DateTime, Date
 from sqlalchemy.orm import relationship
 from .database import Base ## this will come from DB connection files
+import enum
+from datetime import datetime
+
+class TaskStatus(str, enum.Enum):
+    PENDING = "pending"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"   
+    CANCELLED = "cancelled"
+
+class ScheduleStatus(str, enum.Enum):
+    DRAFT = "draft"
+    PUBLISHED = "published"
+    ARCHIVED = "archived"
 
 class User(Base):
   """
@@ -25,40 +38,70 @@ class User(Base):
   hashed_password = Column(String, nullable=False)
   is_active = Column(Boolean, default = True)
   home_address = Column(String, nullable=True)
+  created_at = Column(DateTime, default=datetime.utcnow)
 
   tasks = relationship('Task', back_populates = 'owner')
 
 class Task(Base):
-  """
-  This represents a planned task for a specific user
-  Attributes:
+    """
+    This represents a planned task for a specific user
+    Attributes:
         -title(string): name of task
         -location(string): physical address for route optimzation
         -priority(string): importance lvl
         -owner_id(int): foreign key linking to user
+    """
+    __tablename__ = "tasks"
 
-  """
-  __tablename__ = "tasks"
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, index=True)
+    description = Column(String)
 
-  id = Column(Integer, primary_key=True, index=True)
-  title = Column(String, index=True)
-  description = Column(String)
-  
-  # Coordinates for your optimization algorithm [cite: 2026-02-23]
-  location = Column(String)
-  latitude = Column(Float, nullable=True)
-  longitude = Column(Float, nullable=True)
-  
-  # Timing logic for the scheduler [cite: 2026-02-09]
-  duration_minutes = Column(Integer, default=30)
-  start_window = Column(DateTime, nullable=True)
-  end_window = Column(DateTime, nullable=True)
-  
-  priority = Column(Integer, default=1)
+    # Optimization & Timing
+    location = Column(String)
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
+    duration_minutes = Column(Integer, default=30)
+    earliest_start = Column(DateTime, nullable=True)
+    latest_end = Column(DateTime, nullable=True)
 
-  status = Column(String, default="pending")
+    priority = Column(Integer, default=1)
 
-  completed = Column(Boolean, default=False)
-  
-  owner_id = Column(Integer, ForeignKey('users.id'))
-  owner = relationship("User", back_populates='tasks')
+    # Use the Enum value for the default
+    status = Column(String, default=TaskStatus.PENDING.value) 
+
+    # Audit Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    owner_id = Column(Integer, ForeignKey('users.id'))
+    owner = relationship("User", back_populates='tasks')
+
+    # Add to backend/app/models.py
+
+class Schedule(Base):
+    __tablename__ = "schedules"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    schedule_date = Column(Date, default=datetime.utcnow().date)
+    status = Column(String, default="generated") # e.g., generated, started, completed
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationship to the individual items
+    items = relationship("ScheduleItem", back_populates="schedule", cascade="all, delete-orphan")
+
+class ScheduleItem(Base):
+    __tablename__ = "schedule_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    schedule_id = Column(Integer, ForeignKey("schedules.id"))
+    task_id = Column(Integer, ForeignKey("tasks.id"))
+    position = Column(Integer) # The order (0, 1, 2...)
+    scheduled_start = Column(DateTime)
+    scheduled_end = Column(DateTime)
+
+    schedule = relationship("Schedule", back_populates="items")
+    task = relationship("Task") # Links back to the original task details
