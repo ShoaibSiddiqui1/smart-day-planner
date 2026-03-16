@@ -1,104 +1,221 @@
-import { SafeAreaView, View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
+import {
+  View, Text, TextInput, Pressable,
+  StyleSheet, KeyboardAvoidingView, Platform, ScrollView,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { AppBackground } from '@/components/layout/AppBackground';
+import { Button } from '@/components/ui/Button';
+import { authApi } from '@/services/api';
+import { Typography, Spacing, BorderRadius } from '@/constants/theme';
+
+const DARK_CARD   = 'rgba(4, 16, 30, 0.82)';
+const DARK_INPUT  = 'rgba(255,255,255,0.07)';
+const DARK_BORDER = 'rgba(20, 184, 166, 0.25)';
+const TEXT        = '#F8FAFC';
+const SUBTEXT     = 'rgba(255,255,255,0.55)';
+const TEAL        = '#14B8A6';
+const BLUE        = '#3B82F6';
 
 export default function Signup() {
   const router = useRouter();
-  const scheme = useColorScheme() ?? 'light';
-  const theme = Colors[scheme];
-
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
+  const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError]       = useState('');
+  const [loading, setLoading]   = useState(false);
+
+  const handleSignup = async () => {
+    if (!username.trim() || !email.trim() || !password) {
+      setError('All fields are required.');
+      return;
+    }
+    setError('');
+    setLoading(true);
+    try {
+      await authApi.register(username.trim(), email.trim(), password);
+      router.replace('/login');
+    } catch (e: any) {
+      const detail = e?.response?.data?.detail;
+      setError(detail ?? 'Registration failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]}>
-      <View style={styles.container}>
-        <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
-          <Text style={[styles.title, { color: theme.text }]}>Create Account</Text>
-          <Text style={[styles.subtitle, { color: theme.subtext }]}>
-            Create your account to manage your tasks and schedules.
-          </Text>
+    <View style={styles.root}>
+      <AppBackground />
+      <SafeAreaView style={styles.safe}>
+        <KeyboardAvoidingView
+          style={styles.kav}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <ScrollView
+            contentContainerStyle={styles.scroll}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Brand */}
+            <View style={styles.brand}>
+              <View style={styles.brandDot} />
+              <Text style={styles.brandText}>SmartDayPlanner</Text>
+            </View>
 
-          <TextInput
-            style={[
-              styles.input,
-              { borderColor: theme.border, color: theme.text, backgroundColor: theme.background },
-            ]}
-            placeholder="Full name"
-            placeholderTextColor={theme.subtext}
-            value={name}
-            onChangeText={setName}
-          />
+            {/* Card */}
+            <View style={styles.card}>
+              <Text style={styles.title}>Create account</Text>
+              <Text style={styles.subtitle}>
+                Plan smarter. Move faster. Stay productive.
+              </Text>
 
-          <TextInput
-            style={[
-              styles.input,
-              { borderColor: theme.border, color: theme.text, backgroundColor: theme.background },
-            ]}
-            placeholder="Email"
-            placeholderTextColor={theme.subtext}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            value={email}
-            onChangeText={setEmail}
-          />
+              <DarkInput
+                placeholder="Full name"
+                value={username}
+                onChangeText={setUsername}
+              />
+              <DarkInput
+                placeholder="Email address"
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                keyboardType="email-address"
+              />
+              <DarkInput
+                placeholder="Password"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+              />
 
-          <TextInput
-            style={[
-              styles.input,
-              { borderColor: theme.border, color: theme.text, backgroundColor: theme.background },
-            ]}
-            placeholder="Password"
-            placeholderTextColor={theme.subtext}
-            secureTextEntry
-            value={password}
-            onChangeText={setPassword}
-          />
+              {error ? <Text style={styles.error}>{error}</Text> : null}
 
-          <Pressable style={[styles.button, { backgroundColor: theme.tint }]} onPress={() => router.replace('/login')}>
-            <Text style={styles.buttonText}>Sign Up</Text>
-          </Pressable>
+              <Button
+                label="Sign Up"
+                fullWidth
+                loading={loading}
+                onPress={handleSignup}
+                style={styles.primaryBtn}
+              />
 
-          <Pressable onPress={() => router.back()}>
-            <Text style={[styles.link, { color: theme.tint }]}>Back to Login</Text>
-          </Pressable>
-        </View>
-      </View>
-    </SafeAreaView>
+              <View style={styles.dividerRow}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>or</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              <Pressable onPress={() => router.back()} style={styles.secondaryBtn}>
+                <Text style={styles.secondaryBtnText}>Back to login</Text>
+              </Pressable>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </View>
+  );
+}
+
+function DarkInput(props: React.ComponentProps<typeof TextInput>) {
+  return (
+    <TextInput
+      placeholderTextColor={SUBTEXT}
+      style={styles.input}
+      {...props}
+    />
   );
 }
 
 const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: '#04101E' },
   safe: { flex: 1 },
-  container: { flex: 1, justifyContent: 'center', padding: 20 },
-  card: {
-    borderWidth: 1,
-    borderRadius: 24,
-    padding: 22,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 3,
+  kav:  { flex: 1 },
+  scroll: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.xl,
   },
-  title: { fontSize: 26, fontWeight: '800', textAlign: 'center', marginBottom: 8 },
-  subtitle: { fontSize: 15, textAlign: 'center', marginBottom: 22 },
-  input: {
-    borderWidth: 1,
-    padding: 14,
-    borderRadius: 14,
-    marginBottom: 14,
-    fontSize: 15,
-  },
-  button: {
-    paddingVertical: 15,
-    borderRadius: 14,
+  brand: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4,
+    justifyContent: 'center',
+    marginBottom: Spacing.xl,
+    gap: Spacing.sm,
   },
-  buttonText: { color: 'white', fontWeight: '800', fontSize: 16 },
-  link: { marginTop: 18, textAlign: 'center', fontSize: 15, fontWeight: '600' },
+  brandDot: {
+    width: 10, height: 10,
+    borderRadius: BorderRadius.full,
+    backgroundColor: TEAL,
+  },
+  brandText: {
+    ...Typography.h3,
+    color: TEXT,
+    letterSpacing: 0.5,
+  },
+  card: {
+    backgroundColor: DARK_CARD,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    borderColor: DARK_BORDER,
+    padding: Spacing.lg,
+  },
+  title: {
+    ...Typography.h1,
+    color: TEXT,
+    textAlign: 'center',
+    marginBottom: Spacing.xs,
+  },
+  subtitle: {
+    ...Typography.body,
+    color: SUBTEXT,
+    textAlign: 'center',
+    marginBottom: Spacing.lg,
+  },
+  input: {
+    backgroundColor: DARK_INPUT,
+    borderWidth: 1,
+    borderColor: DARK_BORDER,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 14,
+    color: TEXT,
+    fontSize: 15,
+    marginBottom: Spacing.sm + 2,
+  },
+  error: {
+    ...Typography.caption,
+    color: '#F87171',
+    textAlign: 'center',
+    marginBottom: Spacing.sm,
+  },
+  primaryBtn: {
+    backgroundColor: BLUE,
+    borderRadius: BorderRadius.md,
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: Spacing.md,
+    gap: Spacing.sm,
+  },
+  dividerLine: {
+    flex: 1, height: 1,
+    backgroundColor: DARK_BORDER,
+  },
+  dividerText: {
+    ...Typography.caption,
+    color: SUBTEXT,
+  },
+  secondaryBtn: {
+    borderWidth: 1,
+    borderColor: DARK_BORDER,
+    borderRadius: BorderRadius.md,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  secondaryBtnText: {
+    ...Typography.button,
+    color: TEXT,
+  },
 });

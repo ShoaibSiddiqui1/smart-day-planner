@@ -1,104 +1,172 @@
-import { SafeAreaView, ScrollView, View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { ScreenContainer } from '@/components/layout/ScreenContainer';
+import { ActionCard } from '@/components/ui/ActionCard';
+import { SectionHeader } from '@/components/ui/SectionHeader';
+import { useTheme } from '@/hooks/use-theme';
+import { Typography, Spacing, BorderRadius, Shadows } from '@/constants/theme';
 import { dashboardStats, todayPlan } from '@/constants/mockData';
+
+const STAT_ICONS = ['📋', '🔴', '⏱'];
 
 export default function DashboardScreen() {
   const router = useRouter();
-  const scheme = useColorScheme() ?? 'light';
-  const theme = Colors[scheme];
+  const theme = useTheme();
 
-  const statColors = [theme.tint, theme.priorityHigh, theme.accent];
+  const today = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  });
+
+  const planAccents = [theme.tint, theme.accent, theme.priorityMedium];
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={[styles.greeting, { color: theme.subtext }]}>Good day</Text>
-        <Text style={[styles.title, { color: theme.text }]}>Smart Day Planner</Text>
+    <ScreenContainer>
+      {/* ── Full-bleed hero banner ── */}
+      <View style={[styles.banner, { backgroundColor: theme.tint }]}>
+        <Text style={styles.bannerGreeting}>Good morning ☀️</Text>
+        <Text style={styles.bannerDate}>{today}</Text>
 
-        <View style={styles.statsRow}>
-          {dashboardStats.map((item, index) => (
-            <View key={item.label} style={[styles.statCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-              <Text style={[styles.statValue, { color: statColors[index] }]}>{item.value}</Text>
-              <Text style={[styles.statLabel, { color: theme.subtext }]}>{item.label}</Text>
+        <View style={styles.bannerChips}>
+          {dashboardStats.map((stat, i) => (
+            <View key={stat.label} style={styles.bannerChip}>
+              <Text style={styles.bannerChipIcon}>{STAT_ICONS[i]}</Text>
+              <Text style={styles.bannerChipValue}>{stat.value}</Text>
+              <Text style={styles.bannerChipLabel}>{stat.label}</Text>
             </View>
           ))}
         </View>
+      </View>
 
-        <View style={[styles.heroCard, { backgroundColor: theme.tint }]}>
-          <Text style={styles.heroTitle}>Optimize today’s route</Text>
-          <Text style={styles.heroText}>
-            Reorder tasks by time, priority, and location to save time and reduce travel.
-          </Text>
-          <Pressable style={styles.heroButton} onPress={() => router.push('/(tabs)/schedule')}>
-            <Text style={styles.heroButtonText}>View optimized schedule</Text>
-          </Pressable>
-        </View>
+      {/* ── CTA card ── */}
+      <ActionCard
+        title="Optimize today's route"
+        description="Reorder tasks by time, priority, and location to save time and reduce travel."
+        buttonLabel="View schedule →"
+        onPress={() => router.push('/(tabs)/schedule')}
+        style={styles.actionCard}
+      />
 
-        <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Today’s plan</Text>
-          <Pressable onPress={() => router.push('/(tabs)/tasks')}>
-            <Text style={[styles.link, { color: theme.tint }]}>See all</Text>
-          </Pressable>
-        </View>
+      {/* ── Today's plan ── */}
+      <SectionHeader
+        title="Today's plan"
+        action={{ label: 'See all', onPress: () => router.push('/(tabs)/tasks') }}
+      />
 
-        {todayPlan.map((item) => (
-          <View key={item.time} style={[styles.planCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-            <Text style={[styles.planTime, { color: theme.tint }]}>{item.time}</Text>
-            <Text style={[styles.planTitle, { color: theme.text }]}>{item.title}</Text>
-            <Text style={[styles.planPlace, { color: theme.subtext }]}>{item.place}</Text>
+      {todayPlan.map((item, i) => (
+        <View
+          key={item.time}
+          style={[
+            styles.planCard,
+            Shadows.sm,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+              borderLeftColor: planAccents[i % planAccents.length],
+            },
+          ]}
+        >
+          <View style={styles.planLeft}>
+            <Text style={[styles.planTime, { color: planAccents[i % planAccents.length] }]}>
+              {item.time}
+            </Text>
           </View>
-        ))}
-      </ScrollView>
-    </SafeAreaView>
+          <View style={styles.planRight}>
+            <Text style={[styles.planTitle, { color: theme.text }]}>{item.title}</Text>
+            <Text style={[styles.planPlace, { color: theme.subtext }]}>📍 {item.place}</Text>
+          </View>
+        </View>
+      ))}
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1 },
-  container: { padding: 18, paddingBottom: 120 },
-  greeting: { fontSize: 15, marginBottom: 4 },
-  title: { fontSize: 28, fontWeight: '800', marginBottom: 16 },
-  statsRow: { flexDirection: 'row', gap: 10, marginBottom: 18 },
-  statCard: {
-    flex: 1,
-    borderWidth: 1,
-    borderRadius: 18,
-    padding: 14,
+  /* Hero banner — breaks out of ScreenContainer's horizontal padding */
+  banner: {
+    marginHorizontal: -Spacing.md,
+    marginTop: -Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.xl,
+    borderBottomLeftRadius: BorderRadius.xl + 4,
+    borderBottomRightRadius: BorderRadius.xl + 4,
+    marginBottom: Spacing.lg,
   },
-  statValue: { fontSize: 24, fontWeight: '800', marginBottom: 4 },
-  statLabel: { fontSize: 13, fontWeight: '500' },
-  heroCard: {
-    borderRadius: 22,
-    padding: 18,
-    marginBottom: 20,
+  bannerGreeting: {
+    ...Typography.h2,
+    color: 'white',
+    marginBottom: 4,
   },
-  heroTitle: { color: 'white', fontSize: 22, fontWeight: '800', marginBottom: 8 },
-  heroText: { color: 'white', fontSize: 14, lineHeight: 20, marginBottom: 14 },
-  heroButton: {
-    backgroundColor: 'white',
-    alignSelf: 'flex-start',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 14,
+  bannerDate: {
+    ...Typography.body,
+    color: 'rgba(255,255,255,0.75)',
+    marginBottom: Spacing.lg,
   },
-  heroButtonText: { color: '#2563EB', fontWeight: '700' },
-  sectionHeader: {
+  bannerChips: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: Spacing.sm,
+  },
+  bannerChip: {
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderRadius: BorderRadius.lg,
+    paddingVertical: Spacing.sm + 2,
+    paddingHorizontal: Spacing.sm,
     alignItems: 'center',
-    marginBottom: 12,
   },
-  sectionTitle: { fontSize: 20, fontWeight: '800' },
-  link: { fontWeight: '700' },
+  bannerChipIcon: {
+    fontSize: 18,
+    marginBottom: 2,
+  },
+  bannerChipValue: {
+    ...Typography.h3,
+    color: 'white',
+  },
+  bannerChipLabel: {
+    ...Typography.label,
+    color: 'rgba(255,255,255,0.75)',
+    textAlign: 'center',
+    marginTop: 2,
+  },
+
+  actionCard: {
+    marginBottom: Spacing.md,
+  },
+
+  /* Plan cards with thick left accent border */
   planCard: {
+    flexDirection: 'row',
     borderWidth: 1,
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: 12,
+    borderLeftWidth: 4,
+    borderRadius: BorderRadius.lg,
+    marginBottom: Spacing.sm + 2,
+    overflow: 'hidden',
   },
-  planTime: { fontSize: 14, fontWeight: '700', marginBottom: 4 },
-  planTitle: { fontSize: 17, fontWeight: '700', marginBottom: 4 },
-  planPlace: { fontSize: 14 },
+  planLeft: {
+    width: 72,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  planTime: {
+    ...Typography.label,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  planRight: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    paddingRight: Spacing.md,
+    justifyContent: 'center',
+  },
+  planTitle: {
+    ...Typography.h4,
+    marginBottom: 3,
+  },
+  planPlace: {
+    ...Typography.bodySm,
+  },
 });
