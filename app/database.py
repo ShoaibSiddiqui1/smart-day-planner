@@ -32,7 +32,7 @@ Base = declarative_base()
 """
 Create a new db session for each request and close it once it finishes
 """
-def get_database():
+def get_db():
   db = sessions()
   try:
     yield db

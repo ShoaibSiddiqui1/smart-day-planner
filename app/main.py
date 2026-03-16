@@ -5,11 +5,13 @@ from . import models, schemas, auth, database
 from fastapi.middleware.cors import CORSMiddleware
 from . import algorithms
 from datetime import datetime, timedelta
-
+from .routers import users
 # Import the initialized settings from schemas
 from .config import settings
 # init app
 app = FastAPI(title = "Smart Day Planer API")
+
+app.include_router(users.router, prefix="/users", tags=["Users"])
 
 # 1. Define who can talk to your API
 origins = [
