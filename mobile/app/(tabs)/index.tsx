@@ -1,108 +1,172 @@
-import {
-  SafeAreaView,
-  View,
-  Text,
-  TextInput,
-  Pressable,
-  FlatList,
-  StyleSheet,
-} from "react-native";
-import { useState } from "react";
-import { useRouter } from "expo-router";
+import { View, Text, StyleSheet } from 'react-native';
+import { useRouter } from 'expo-router';
+import { ScreenContainer } from '@/components/layout/ScreenContainer';
+import { ActionCard } from '@/components/ui/ActionCard';
+import { SectionHeader } from '@/components/ui/SectionHeader';
+import { useTheme } from '@/hooks/use-theme';
+import { Typography, Spacing, BorderRadius, Shadows } from '@/constants/theme';
+import { dashboardStats, todayPlan } from '@/constants/mockData';
 
-type Task = { id: string; title: string };
+const STAT_ICONS = ['📋', '🔴', '⏱'];
 
-export default function TasksTab() {
+export default function DashboardScreen() {
   const router = useRouter();
-  const [taskText, setTaskText] = useState("");
-  const [tasks, setTasks] = useState<Task[]>([
-    { id: "1", title: "Buy groceries (demo)" },
-    { id: "2", title: "Pick up package (demo)" },
-  ]);
+  const theme = useTheme();
 
-  const addTask = () => {
-    const t = taskText.trim();
-    if (!t) return;
-    setTasks([{ id: String(Date.now()), title: t }, ...tasks]);
-    setTaskText("");
-  };
+  const today = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  });
+
+  const planAccents = [theme.tint, theme.accent, theme.priorityMedium];
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.headerRow}>
-        <Text style={styles.title}>Tasks</Text>
+    <ScreenContainer>
+      {/* ── Full-bleed hero banner ── */}
+      <View style={[styles.banner, { backgroundColor: theme.tint }]}>
+        <Text style={styles.bannerGreeting}>Good morning ☀️</Text>
+        <Text style={styles.bannerDate}>{today}</Text>
 
-        <Pressable style={styles.smallBtn} onPress={() => router.replace("/login")}>
-          <Text style={styles.smallBtnText}>Logout</Text>
-        </Pressable>
+        <View style={styles.bannerChips}>
+          {dashboardStats.map((stat, i) => (
+            <View key={stat.label} style={styles.bannerChip}>
+              <Text style={styles.bannerChipIcon}>{STAT_ICONS[i]}</Text>
+              <Text style={styles.bannerChipValue}>{stat.value}</Text>
+              <Text style={styles.bannerChipLabel}>{stat.label}</Text>
+            </View>
+          ))}
+        </View>
       </View>
 
-      <View style={styles.row}>
-        <TextInput
-          style={styles.input}
-          placeholder="Add a task..."
-          placeholderTextColor="#888"
-          value={taskText}
-          onChangeText={setTaskText}
-        />
-        <Pressable style={styles.addBtn} onPress={addTask}>
-          <Text style={styles.addBtnText}>Add</Text>
-        </Pressable>
-      </View>
-
-      <FlatList
-        data={tasks}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingBottom: 30 }}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Text style={styles.cardText}>{item.title}</Text>
-          </View>
-        )}
+      {/* ── CTA card ── */}
+      <ActionCard
+        title="Optimize today's route"
+        description="Reorder tasks by time, priority, and location to save time and reduce travel."
+        buttonLabel="View schedule →"
+        onPress={() => router.push('/(tabs)/schedule')}
+        style={styles.actionCard}
       />
-    </SafeAreaView>
+
+      {/* ── Today's plan ── */}
+      <SectionHeader
+        title="Today's plan"
+        action={{ label: 'See all', onPress: () => router.push('/(tabs)/tasks') }}
+      />
+
+      {todayPlan.map((item, i) => (
+        <View
+          key={item.time}
+          style={[
+            styles.planCard,
+            Shadows.sm,
+            {
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+              borderLeftColor: planAccents[i % planAccents.length],
+            },
+          ]}
+        >
+          <View style={styles.planLeft}>
+            <Text style={[styles.planTime, { color: planAccents[i % planAccents.length] }]}>
+              {item.time}
+            </Text>
+          </View>
+          <View style={styles.planRight}>
+            <Text style={[styles.planTitle, { color: theme.text }]}>{item.title}</Text>
+            <Text style={[styles.planPlace, { color: theme.subtext }]}>📍 {item.place}</Text>
+          </View>
+        </View>
+      ))}
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: "black" },
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
+  /* Hero banner — breaks out of ScreenContainer's horizontal padding */
+  banner: {
+    marginHorizontal: -Spacing.md,
+    marginTop: -Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.xl,
+    borderBottomLeftRadius: BorderRadius.xl + 4,
+    borderBottomRightRadius: BorderRadius.xl + 4,
+    marginBottom: Spacing.lg,
   },
-  title: { fontSize: 24, fontWeight: "800", color: "white" },
-  row: { flexDirection: "row", gap: 8, marginBottom: 12 },
-  input: {
+  bannerGreeting: {
+    ...Typography.h2,
+    color: 'white',
+    marginBottom: 4,
+  },
+  bannerDate: {
+    ...Typography.body,
+    color: 'rgba(255,255,255,0.75)',
+    marginBottom: Spacing.lg,
+  },
+  bannerChips: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  bannerChip: {
     flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderRadius: BorderRadius.lg,
+    paddingVertical: Spacing.sm + 2,
+    paddingHorizontal: Spacing.sm,
+    alignItems: 'center',
+  },
+  bannerChipIcon: {
+    fontSize: 18,
+    marginBottom: 2,
+  },
+  bannerChipValue: {
+    ...Typography.h3,
+    color: 'white',
+  },
+  bannerChipLabel: {
+    ...Typography.label,
+    color: 'rgba(255,255,255,0.75)',
+    textAlign: 'center',
+    marginTop: 2,
+  },
+
+  actionCard: {
+    marginBottom: Spacing.md,
+  },
+
+  /* Plan cards with thick left accent border */
+  planCard: {
+    flexDirection: 'row',
     borderWidth: 1,
-    borderColor: "#444",
-    padding: 12,
-    borderRadius: 12,
-    color: "white",
+    borderLeftWidth: 4,
+    borderRadius: BorderRadius.lg,
+    marginBottom: Spacing.sm + 2,
+    overflow: 'hidden',
   },
-  addBtn: {
-    backgroundColor: "white",
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    justifyContent: "center",
+  planLeft: {
+    width: 72,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  addBtnText: { color: "black", fontWeight: "800" },
-  card: {
-    borderWidth: 1,
-    borderColor: "#333",
-    padding: 14,
-    borderRadius: 14,
-    marginBottom: 10,
+  planTime: {
+    ...Typography.label,
+    fontWeight: '800',
+    textAlign: 'center',
   },
-  cardText: { fontSize: 16, color: "white" },
-  smallBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#444",
+  planRight: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    paddingRight: Spacing.md,
+    justifyContent: 'center',
   },
-  smallBtnText: { fontWeight: "700", color: "white" },
+  planTitle: {
+    ...Typography.h4,
+    marginBottom: 3,
+  },
+  planPlace: {
+    ...Typography.bodySm,
+  },
 });

@@ -1,320 +1,139 @@
-import { SafeAreaView, ScrollView, View, Text, Pressable, StyleSheet } from 'react-native';
-import { Colors } from '@/constants/theme';
+import { View, Text, StyleSheet } from 'react-native';
+import { ScreenContainer } from '@/components/layout/ScreenContainer';
+import { Header } from '@/components/layout/Header';
+import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { SectionHeader } from '@/components/ui/SectionHeader';
+import { Badge } from '@/components/ui/Badge';
+import { useTheme } from '@/hooks/use-theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Typography, Spacing, BorderRadius } from '@/constants/theme';
 import { mapStops } from '@/constants/mockData';
 
 export default function MapScreen() {
+  const theme = useTheme();
   const scheme = useColorScheme() ?? 'light';
-  const theme = Colors[scheme];
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={[styles.title, { color: theme.text }]}>Route Map</Text>
-        <Text style={[styles.subtitle, { color: theme.subtext }]}>
-          Preview your optimized route and task order for the day.
-        </Text>
+    <ScreenContainer>
+      <Header title="Route Map" subtitle="Preview your optimized route for the day." />
 
-        <View style={[styles.topSummaryCard, { backgroundColor: theme.tint }]}>
-          <Text style={styles.topSummaryTitle}>Today’s optimized route</Text>
-          <Text style={styles.topSummaryBig}>12.4 miles • 3 stops</Text>
-          <Text style={styles.topSummaryText}>
-            Estimated time saved: 45 minutes with improved task ordering.
-          </Text>
-        </View>
+      {/* Hero summary */}
+      <Card style={[styles.heroCard, { backgroundColor: theme.tint, borderColor: 'transparent' }]}>
+        <Text style={styles.heroLabel}>Today's optimized route</Text>
+        <Text style={styles.heroBig}>12.4 miles · 3 stops</Text>
+        <Text style={styles.heroText}>Estimated time saved: 45 minutes with improved task ordering.</Text>
+      </Card>
 
-        <View style={[styles.mapCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-          <View style={[styles.fakeMap, { backgroundColor: scheme === 'dark' ? '#0B1220' : '#DBEAFE' }]}>
-            <View style={[styles.streetHorizontal, { backgroundColor: scheme === 'dark' ? '#1E293B' : '#BFDBFE' }]} />
-            <View style={[styles.streetVertical, { backgroundColor: scheme === 'dark' ? '#1E293B' : '#BFDBFE' }]} />
-
-            <View style={[styles.routeLineOne, { backgroundColor: theme.tint }]} />
-            <View style={[styles.routeLineTwo, { backgroundColor: theme.accent }]} />
-
-            <View style={[styles.pin, styles.pinOne, { backgroundColor: theme.tint }]}>
-              <Text style={styles.pinText}>1</Text>
+      {/* Map placeholder */}
+      <Card noPad style={styles.mapCard}>
+        <View style={[styles.fakeMap, { backgroundColor: scheme === 'dark' ? '#0B1220' : '#DBEAFE' }]}>
+          <View style={[styles.streetH, { backgroundColor: scheme === 'dark' ? '#1E293B' : '#BFDBFE' }]} />
+          <View style={[styles.streetV, { backgroundColor: scheme === 'dark' ? '#1E293B' : '#BFDBFE' }]} />
+          <View style={[styles.routeA, { backgroundColor: theme.tint }]} />
+          <View style={[styles.routeB, { backgroundColor: theme.accent }]} />
+          {[
+            { style: styles.pinA, color: theme.tint, n: '1' },
+            { style: styles.pinB, color: theme.accent, n: '2' },
+            { style: styles.pinC, color: theme.priorityHigh, n: '3' },
+          ].map(({ style, color, n }) => (
+            <View key={n} style={[styles.pin, style, { backgroundColor: color }]}>
+              <Text style={styles.pinText}>{n}</Text>
             </View>
-            <View style={[styles.pin, styles.pinTwo, { backgroundColor: theme.accent }]}>
-              <Text style={styles.pinText}>2</Text>
-            </View>
-            <View style={[styles.pin, styles.pinThree, { backgroundColor: theme.priorityHigh }]}>
-              <Text style={styles.pinText}>3</Text>
-            </View>
-
-            <View style={[styles.currentLocation, { backgroundColor: theme.card, borderColor: theme.border }]}>
-              <Text style={[styles.currentLocationText, { color: theme.text }]}>You are here</Text>
-            </View>
-          </View>
-
-          <View style={styles.summaryRow}>
-            <View style={[styles.summaryBox, { backgroundColor: theme.background, borderColor: theme.border }]}>
-              <Text style={[styles.summaryValue, { color: theme.tint }]}>12.4 mi</Text>
-              <Text style={[styles.summaryLabel, { color: theme.subtext }]}>Distance</Text>
-            </View>
-            <View style={[styles.summaryBox, { backgroundColor: theme.background, borderColor: theme.border }]}>
-              <Text style={[styles.summaryValue, { color: theme.accent }]}>45 min</Text>
-              <Text style={[styles.summaryLabel, { color: theme.subtext }]}>Saved</Text>
-            </View>
-            <View style={[styles.summaryBox, { backgroundColor: theme.background, borderColor: theme.border }]}>
-              <Text style={[styles.summaryValue, { color: theme.priorityHigh }]}>3</Text>
-              <Text style={[styles.summaryLabel, { color: theme.subtext }]}>Stops</Text>
-            </View>
+          ))}
+          <View style={[styles.youAreHere, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <Text style={[styles.youAreHereText, { color: theme.text }]}>You are here</Text>
           </View>
         </View>
 
-        <View style={styles.sectionRow}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Next destination</Text>
-          <Text style={[styles.sectionLink, { color: theme.tint }]}>Live route later</Text>
-        </View>
-
-        <View style={[styles.nextStopCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-          <Text style={[styles.nextStopTime, { color: theme.tint }]}>Next at 9:00 AM</Text>
-          <Text style={[styles.nextStopTitle, { color: theme.text }]}>Hunter College</Text>
-          <Text style={[styles.nextStopAddress, { color: theme.subtext }]}>695 Park Ave</Text>
-        </View>
-
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>Stop order</Text>
-
-        {mapStops.map((stop) => (
-          <View key={stop.id} style={[styles.stopCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-            <View style={[styles.stopBadge, { backgroundColor: theme.tint }]}>
-              <Text style={styles.stopBadgeText}>{stop.order}</Text>
+        {/* Stat row */}
+        <View style={styles.statRow}>
+          {[
+            { value: '12.4 mi', label: 'Distance', color: theme.tint },
+            { value: '45 min', label: 'Saved', color: theme.accent },
+            { value: '3', label: 'Stops', color: theme.priorityHigh },
+          ].map(({ value, label, color }) => (
+            <View key={label} style={[styles.statBox, { backgroundColor: theme.background, borderColor: theme.border }]}>
+              <Text style={[styles.statValue, { color }]}>{value}</Text>
+              <Text style={[styles.statLabel, { color: theme.subtext }]}>{label}</Text>
             </View>
+          ))}
+        </View>
+      </Card>
 
-            <View style={styles.stopContent}>
-              <View style={styles.stopTopRow}>
-                <Text style={[styles.stopTitle, { color: theme.text }]}>{stop.title}</Text>
-                <View style={[styles.typeChip, { backgroundColor: theme.background, borderColor: theme.border }]}>
-                  <Text style={[styles.typeChipText, { color: theme.subtext }]}>{stop.type}</Text>
-                </View>
-              </View>
+      {/* Next stop */}
+      <SectionHeader title="Next destination" />
+      <Card>
+        <Text style={[styles.nextTime, { color: theme.tint }]}>Next at 9:00 AM</Text>
+        <Text style={[styles.nextTitle, { color: theme.text }]}>Hunter College</Text>
+        <Text style={[styles.nextAddr, { color: theme.subtext }]}>695 Park Ave</Text>
+      </Card>
 
-              <Text style={[styles.stopAddress, { color: theme.subtext }]}>{stop.address}</Text>
-              <Text style={[styles.stopEta, { color: theme.tint }]}>ETA: {stop.eta}</Text>
-            </View>
+      {/* Stop order */}
+      <SectionHeader title="Stop order" />
+      {mapStops.map((stop) => (
+        <Card key={stop.id} style={styles.stopCard}>
+          <View style={[styles.stopBadge, { backgroundColor: theme.tint }]}>
+            <Text style={styles.stopBadgeText}>{stop.order}</Text>
           </View>
-        ))}
+          <View style={styles.stopBody}>
+            <View style={styles.stopTopRow}>
+              <Text style={[styles.stopTitle, { color: theme.text }]}>{stop.title}</Text>
+              <Badge label={stop.type} color={theme.subtext} variant="outline" />
+            </View>
+            <Text style={[styles.stopAddr, { color: theme.subtext }]}>{stop.address}</Text>
+            <Text style={[styles.stopEta, { color: theme.tint }]}>ETA: {stop.eta}</Text>
+          </View>
+        </Card>
+      ))}
 
-        <View style={styles.buttonRow}>
-          <Pressable style={[styles.secondaryBtn, { borderColor: theme.border, backgroundColor: theme.card }]}>
-            <Text style={[styles.secondaryBtnText, { color: theme.text }]}>Recalculate</Text>
-          </Pressable>
-
-          <Pressable style={[styles.primaryBtn, { backgroundColor: theme.tint }]}>
-            <Text style={styles.primaryBtnText}>Open navigation</Text>
-          </Pressable>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+      {/* Actions */}
+      <View style={styles.btnRow}>
+        <Button label="Recalculate" variant="secondary" style={styles.halfBtn} />
+        <Button label="Open navigation" fullWidth style={styles.halfBtn} />
+      </View>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1 },
-  container: { padding: 18, paddingBottom: 120 },
-  title: { fontSize: 28, fontWeight: '800', marginBottom: 4 },
-  subtitle: { fontSize: 15, marginBottom: 16 },
+  heroCard: { marginBottom: Spacing.md },
+  heroLabel: { ...Typography.caption, color: 'rgba(255,255,255,0.8)', marginBottom: Spacing.xs },
+  heroBig: { ...Typography.h1, color: 'white', marginBottom: Spacing.xs },
+  heroText: { ...Typography.body, color: 'rgba(255,255,255,0.85)' },
 
-  topSummaryCard: {
-    borderRadius: 22,
-    padding: 18,
-    marginBottom: 18,
-  },
-  topSummaryTitle: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 6,
-  },
-  topSummaryBig: {
-    color: 'white',
-    fontSize: 26,
-    fontWeight: '800',
-    marginBottom: 6,
-  },
-  topSummaryText: {
-    color: 'white',
-    fontSize: 14,
-    lineHeight: 20,
-  },
+  mapCard: { marginBottom: Spacing.md, overflow: 'hidden' },
+  fakeMap: { height: 240, position: 'relative' },
+  streetH: { position: 'absolute', top: 95, left: 0, right: 0, height: 16 },
+  streetV: { position: 'absolute', left: 128, top: 0, bottom: 0, width: 16 },
+  routeA: { position: 'absolute', width: 136, height: 4, top: 75, left: 62, borderRadius: BorderRadius.full, transform: [{ rotate: '25deg' }] },
+  routeB: { position: 'absolute', width: 124, height: 4, top: 116, left: 148, borderRadius: BorderRadius.full, transform: [{ rotate: '-18deg' }] },
+  pin: { position: 'absolute', width: 28, height: 28, borderRadius: BorderRadius.full, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'white' },
+  pinText: { color: 'white', fontWeight: '800', fontSize: 11 },
+  pinA: { top: 52, left: 50 },
+  pinB: { top: 112, left: 158 },
+  pinC: { top: 68, right: 46 },
+  youAreHere: { position: 'absolute', left: 12, bottom: 12, borderWidth: 1, borderRadius: BorderRadius.full, paddingHorizontal: 10, paddingVertical: 6 },
+  youAreHereText: { ...Typography.label },
 
-  mapCard: {
-    borderWidth: 1,
-    borderRadius: 22,
-    padding: 14,
-    marginBottom: 20,
-  },
-  fakeMap: {
-    height: 260,
-    borderRadius: 18,
-    overflow: 'hidden',
-    position: 'relative',
-    marginBottom: 14,
-  },
-  streetHorizontal: {
-    position: 'absolute',
-    top: 100,
-    left: 0,
-    right: 0,
-    height: 18,
-  },
-  streetVertical: {
-    position: 'absolute',
-    left: 130,
-    top: 0,
-    bottom: 0,
-    width: 18,
-  },
-  routeLineOne: {
-    position: 'absolute',
-    width: 140,
-    height: 5,
-    top: 78,
-    left: 65,
-    transform: [{ rotate: '25deg' }],
-    borderRadius: 999,
-  },
-  routeLineTwo: {
-    position: 'absolute',
-    width: 130,
-    height: 5,
-    top: 120,
-    left: 150,
-    transform: [{ rotate: '-18deg' }],
-    borderRadius: 999,
-  },
-  pin: {
-    position: 'absolute',
-    width: 30,
-    height: 30,
-    borderRadius: 999,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: 'white',
-  },
-  pinText: {
-    color: 'white',
-    fontWeight: '800',
-    fontSize: 12,
-  },
-  pinOne: { top: 55, left: 52 },
-  pinTwo: { top: 115, left: 160 },
-  pinThree: { top: 72, right: 48 },
+  statRow: { flexDirection: 'row', gap: Spacing.sm, padding: Spacing.sm + 4 },
+  statBox: { flex: 1, borderWidth: 1, borderRadius: BorderRadius.md, padding: Spacing.sm + 4 },
+  statValue: { ...Typography.h3, marginBottom: 2 },
+  statLabel: { ...Typography.label },
 
-  currentLocation: {
-    position: 'absolute',
-    left: 16,
-    bottom: 16,
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  currentLocationText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
+  nextTime: { ...Typography.caption, fontWeight: '700', marginBottom: Spacing.xs },
+  nextTitle: { ...Typography.h3, marginBottom: 2 },
+  nextAddr: { ...Typography.bodySm },
 
-  summaryRow: { flexDirection: 'row', gap: 10 },
-  summaryBox: {
-    flex: 1,
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: 12,
-  },
-  summaryValue: { fontSize: 22, fontWeight: '800', marginBottom: 4 },
-  summaryLabel: { fontSize: 12, fontWeight: '600' },
+  stopCard: { flexDirection: 'row', gap: Spacing.sm, alignItems: 'flex-start' },
+  stopBadge: { width: 32, height: 32, borderRadius: BorderRadius.full, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
+  stopBadgeText: { color: 'white', fontWeight: '800', fontSize: 13 },
+  stopBody: { flex: 1 },
+  stopTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.xs },
+  stopTitle: { ...Typography.h4, flex: 1 },
+  stopAddr: { ...Typography.bodySm, marginBottom: 2 },
+  stopEta: { ...Typography.caption, fontWeight: '700' },
 
-  sectionRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  sectionTitle: { fontSize: 20, fontWeight: '800', marginBottom: 12 },
-  sectionLink: { fontSize: 13, fontWeight: '700' },
-
-  nextStopCard: {
-    borderWidth: 1,
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: 18,
-  },
-  nextStopTime: {
-    fontSize: 13,
-    fontWeight: '700',
-    marginBottom: 6,
-  },
-  nextStopTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    marginBottom: 4,
-  },
-  nextStopAddress: {
-    fontSize: 14,
-  },
-
-  stopCard: {
-    borderWidth: 1,
-    borderRadius: 18,
-    padding: 14,
-    marginBottom: 12,
-    flexDirection: 'row',
-    gap: 12,
-  },
-  stopBadge: {
-    width: 34,
-    height: 34,
-    borderRadius: 999,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 2,
-  },
-  stopBadgeText: { color: 'white', fontWeight: '800' },
-  stopContent: { flex: 1 },
-  stopTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 8,
-    marginBottom: 4,
-    alignItems: 'center',
-  },
-  stopTitle: { fontSize: 16, fontWeight: '800', flex: 1 },
-  stopAddress: { fontSize: 14, marginBottom: 4 },
-  stopEta: { fontSize: 13, fontWeight: '700' },
-  typeChip: {
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  typeChipText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-
-  buttonRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 8,
-  },
-  secondaryBtn: {
-    flex: 1,
-    borderWidth: 1,
-    paddingVertical: 15,
-    borderRadius: 16,
-    alignItems: 'center',
-  },
-  secondaryBtnText: {
-    fontWeight: '800',
-    fontSize: 15,
-  },
-  primaryBtn: {
-    flex: 1,
-    paddingVertical: 15,
-    borderRadius: 16,
-    alignItems: 'center',
-  },
-  primaryBtnText: { color: 'white', fontWeight: '800', fontSize: 15 },
+  btnRow: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.xs },
+  halfBtn: { flex: 1 },
 });
