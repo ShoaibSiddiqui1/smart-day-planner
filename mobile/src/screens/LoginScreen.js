@@ -6,7 +6,8 @@ import { ThemedView } from '../components/themed-view';
 import { Colors } from '../constants/theme';
 
 // Ensure this IP matches your current WSL 'hostname -I'
-const API_URL = "http://172.22.232.172:8000";
+ const API_URL = "http://192.168.1.175:8000"
+
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');

@@ -8,7 +8,7 @@ import { ThemedView } from '../components/themed-view';
 import { ThemedText } from '../components/themed-text';
 import { Colors } from '../constants/theme';
 
-const API_URL = "http://172.22.232.172:8000";
+const API_URL = "http://192.168.1.175:8000"
 
 export default function TasksScreen() {
   const [tasks, setTasks] = useState([]);
@@ -22,9 +22,8 @@ export default function TasksScreen() {
       const lat = 40.7580;
       const lon = -73.9855;
 
-      const response = await fetch(`${API_URL}/tasks/optimized?lat=${lat}&lon=${lon}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await fetch(`${API_URL}/tasks/optimize`, {
+       headers: { Authorization: `Bearer ${token}` }});
 
       const data = await response.json();
       if (response.ok) setTasks(data);
