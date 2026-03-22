@@ -7,6 +7,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { AppBackground } from '@/components/layout/AppBackground';
 import { Button } from '@/components/ui/Button';
+import { authApi } from '@/services/api';
 import { Typography, Spacing, BorderRadius } from '@/constants/theme';
 
 const DARK_CARD   = 'rgba(4, 16, 30, 0.82)';
@@ -17,10 +18,28 @@ const SUBTEXT     = 'rgba(255,255,255,0.55)';
 const TEAL        = '#14B8A6';
 const BLUE        = '#3B82F6';
 
-export default function Login() {
+export default function ForgotPassword() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail]     = useState('');
+  const [error, setError]     = useState('');
+  const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!email.trim()) {
+      setError('Please enter your email address.');
+      return;
+    }
+    setError(''); setMessage(''); setLoading(true);
+    try {
+      const res = await authApi.forgotPassword(email.trim());
+      setMessage(res.data.message);
+    } catch {
+      setError('Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <View style={styles.root}>
@@ -35,72 +54,57 @@ export default function Login() {
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            {/* Brand */}
             <View style={styles.brand}>
               <View style={styles.brandDot} />
               <Text style={styles.brandText}>SmartDayPlanner</Text>
             </View>
 
-            {/* Card */}
             <View style={styles.card}>
-              <Text style={styles.title}>Welcome back</Text>
-              <Text style={styles.subtitle}>Sign in to your account</Text>
+              <Text style={styles.title}>Reset Password</Text>
+              <Text style={styles.subtitle}>
+                Enter your email and we'll send a reset code.
+              </Text>
 
-              <DarkInput
+              <TextInput
+                style={styles.input}
                 placeholder="Email address"
-                value={email}
-                onChangeText={setEmail}
+                placeholderTextColor={SUBTEXT}
                 autoCapitalize="none"
                 keyboardType="email-address"
-              />
-              <DarkInput
-                placeholder="Password"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
+                value={email}
+                onChangeText={setEmail}
               />
 
-              <Pressable
-                onPress={() => router.push('/forgot-password')}
-                style={styles.forgotWrap}
-              >
-                <Text style={styles.forgotText}>Forgot password?</Text>
-              </Pressable>
+              {error   ? <Text style={styles.error}>{error}</Text>     : null}
+              {message ? <Text style={styles.success}>{message}</Text> : null}
 
               <Button
-                label="Sign In"
+                label="Send Reset Code"
                 fullWidth
-                onPress={() => router.replace('/(tabs)')}
+                loading={loading}
+                onPress={handleSubmit}
                 style={styles.primaryBtn}
               />
 
-              <View style={styles.dividerRow}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>or</Text>
-                <View style={styles.dividerLine} />
-              </View>
+              {message ? (
+                <Button
+                  label="Enter reset code →"
+                  variant="ghost"
+                  fullWidth
+                  onPress={() => router.push('/reset-password')}
+                  style={styles.ghostBtn}
+                  textStyle={{ color: TEAL }}
+                />
+              ) : null}
 
-              <Pressable
-                onPress={() => router.push('/signup')}
-                style={styles.secondaryBtn}
-              >
-                <Text style={styles.secondaryBtnText}>Create an account</Text>
+              <Pressable onPress={() => router.back()} style={styles.backLink}>
+                <Text style={styles.backText}>← Back to login</Text>
               </Pressable>
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
     </View>
-  );
-}
-
-function DarkInput(props: React.ComponentProps<typeof TextInput>) {
-  return (
-    <TextInput
-      placeholderTextColor={SUBTEXT}
-      style={styles.input}
-      {...props}
-    />
   );
 }
 
@@ -114,7 +118,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.xl,
   },
-
   brand: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -127,12 +130,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.full,
     backgroundColor: TEAL,
   },
-  brandText: {
-    ...Typography.h3,
-    color: TEXT,
-    letterSpacing: 0.5,
-  },
-
+  brandText: { ...Typography.h3, color: TEXT, letterSpacing: 0.5 },
   card: {
     backgroundColor: DARK_CARD,
     borderRadius: BorderRadius.xl,
@@ -140,19 +138,8 @@ const styles = StyleSheet.create({
     borderColor: DARK_BORDER,
     padding: Spacing.lg,
   },
-  title: {
-    ...Typography.h1,
-    color: TEXT,
-    textAlign: 'center',
-    marginBottom: Spacing.xs,
-  },
-  subtitle: {
-    ...Typography.body,
-    color: SUBTEXT,
-    textAlign: 'center',
-    marginBottom: Spacing.lg,
-  },
-
+  title:    { ...Typography.h1, color: TEXT,    textAlign: 'center', marginBottom: Spacing.xs },
+  subtitle: { ...Typography.body, color: SUBTEXT, textAlign: 'center', marginBottom: Spacing.lg },
   input: {
     backgroundColor: DARK_INPUT,
     borderWidth: 1,
@@ -164,47 +151,10 @@ const styles = StyleSheet.create({
     fontSize: 15,
     marginBottom: Spacing.sm + 2,
   },
-
-  forgotWrap: {
-    alignSelf: 'flex-end',
-    marginBottom: Spacing.md,
-    marginTop: -Spacing.xs,
-  },
-  forgotText: {
-    ...Typography.caption,
-    color: TEAL,
-  },
-
-  primaryBtn: {
-    backgroundColor: BLUE,
-    borderRadius: BorderRadius.md,
-  },
-
-  dividerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: Spacing.md,
-    gap: Spacing.sm,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: DARK_BORDER,
-  },
-  dividerText: {
-    ...Typography.caption,
-    color: SUBTEXT,
-  },
-
-  secondaryBtn: {
-    borderWidth: 1,
-    borderColor: DARK_BORDER,
-    borderRadius: BorderRadius.md,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  secondaryBtnText: {
-    ...Typography.button,
-    color: TEXT,
-  },
+  error:   { ...Typography.caption, color: '#F87171', textAlign: 'center', marginBottom: Spacing.sm },
+  success: { ...Typography.caption, color: '#4ADE80', textAlign: 'center', marginBottom: Spacing.sm },
+  primaryBtn: { backgroundColor: BLUE },
+  ghostBtn:   { marginTop: Spacing.xs },
+  backLink: { marginTop: Spacing.md, alignItems: 'center' },
+  backText: { ...Typography.body, color: SUBTEXT, fontWeight: '600' },
 });
