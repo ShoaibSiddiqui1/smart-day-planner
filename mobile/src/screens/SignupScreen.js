@@ -6,7 +6,7 @@ import { Colors } from '../constants/theme';
 
 // TIP: If you are on WSL, run 'hostname -I' and use the first IP.
 // Ensure your FastAPI is running with: uvicorn main:app --host 0.0.0.0
-const API_URL = "http://172.22.232.172:8000"; 
+const API_URL = "http://192.168.1.175:8000"
 
 export default function SignupScreen({ navigation }) {
   const [username, setUsername] = useState('');
