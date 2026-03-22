@@ -7,7 +7,7 @@ import { Platform } from 'react-native';
 
 const lightBg = '#F8FAFC';   // A very light slate/gray
 const brandBlue = '#3B82F6';  // A standard blue
-const brandTeal = '#14B8A6';
+const brandTeal = '#14B8A6';  // A standard teal
 
 const tintColorLight = '#0a7ea4';
 const tintColorDark = '#fff';
@@ -33,11 +33,21 @@ export const Colors = {
   },
   dark: {
     text: '#ECEDEE',
-    background: '#151718',
+    subtext: '#94A3B8',
+    background: '#0F172A',   // Deep dark slate
+    card: '#1E293B',         // Slightly lighter than background
     tint: tintColorDark,
+    accent: brandTeal,
     icon: '#9BA1A6',
+    border: '#334155',
     tabIconDefault: '#9BA1A6',
     tabIconSelected: tintColorDark,
+    success: '#22C55E',
+    warning: '#F59E0B',
+    danger: '#EF4444',
+    priorityHigh: '#EF4444',
+    priorityMedium: '#F59E0B',
+    priorityLow: '#22C55E',
   },
 };
 
@@ -59,17 +69,17 @@ export const BorderRadius = {
 } as const;
 
 export const Typography = {
-  hero:    { fontSize: 30, fontWeight: '800' as const, letterSpacing: -0.5 },
-  h1:      { fontSize: 28, fontWeight: '800' as const, letterSpacing: -0.3 },
-  h2:      { fontSize: 22, fontWeight: '800' as const, letterSpacing: -0.2 },
-  h3:      { fontSize: 18, fontWeight: '700' as const },
-  h4:      { fontSize: 16, fontWeight: '700' as const },
-  body:    { fontSize: 15, fontWeight: '400' as const, lineHeight: 22 },
-  bodySm:  { fontSize: 13, fontWeight: '400' as const, lineHeight: 18 },
-  label:   { fontSize: 12, fontWeight: '600' as const, letterSpacing: 0.3 },
-  caption: { fontSize: 13, fontWeight: '500' as const },
-  button:  { fontSize: 15, fontWeight: '700' as const },
-  buttonSm:{ fontSize: 13, fontWeight: '700' as const },
+  hero:     { fontSize: 30, fontWeight: '800' as const, letterSpacing: -0.5 },
+  h1:       { fontSize: 28, fontWeight: '800' as const, letterSpacing: -0.3 },
+  h2:       { fontSize: 22, fontWeight: '800' as const, letterSpacing: -0.2 },
+  h3:       { fontSize: 18, fontWeight: '700' as const },
+  h4:       { fontSize: 16, fontWeight: '700' as const },
+  body:     { fontSize: 15, fontWeight: '400' as const, lineHeight: 22 },
+  bodySm:   { fontSize: 13, fontWeight: '400' as const, lineHeight: 18 },
+  label:    { fontSize: 12, fontWeight: '600' as const, letterSpacing: 0.3 },
+  caption:  { fontSize: 13, fontWeight: '500' as const },
+  button:   { fontSize: 15, fontWeight: '700' as const },
+  buttonSm: { fontSize: 13, fontWeight: '700' as const },
 } as const;
 
 export const Shadows = {
@@ -98,13 +108,9 @@ export const Shadows = {
 
 export const Fonts = Platform.select({
   ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
     sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
     serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
     rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
     mono: 'ui-monospace',
   },
   default: {
