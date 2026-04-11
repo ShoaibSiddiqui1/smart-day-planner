@@ -6,6 +6,7 @@ import {
   Pressable,
   ViewStyle,
   TextStyle,
+  StyleProp,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -26,8 +27,8 @@ interface ButtonProps {
   fullWidth?: boolean;
   loading?: boolean;
   disabled?: boolean;
-  style?: ViewStyle;
-  textStyle?: TextStyle;
+  style?: StyleProp<ViewStyle>;
+  textStyle?: StyleProp<TextStyle>;
 }
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -53,6 +54,7 @@ export function Button({
   const handlePressIn = () => {
     scale.value = withSpring(0.96, { damping: 15, stiffness: 300 });
   };
+
   const handlePressOut = () => {
     scale.value = withSpring(1, { damping: 15, stiffness: 300 });
   };
@@ -81,30 +83,34 @@ export function Button({
 
   const textTypo = size === 'sm' ? Typography.buttonSm : Typography.button;
 
+  const buttonStyle: StyleProp<ViewStyle> = [
+    animatedStyle,
+    styles.base,
+    padding,
+    {
+      backgroundColor: bgColor,
+      borderColor,
+      borderWidth: variant === 'secondary' ? 1 : 0,
+      alignSelf: fullWidth ? 'stretch' : 'flex-start',
+      opacity: disabled ? 0.5 : 1,
+    },
+    style,
+  ];
+
   return (
     <AnimatedPressable
       onPress={onPress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       disabled={disabled || loading}
-      style={[
-        animatedStyle,
-        styles.base,
-        padding,
-        {
-          backgroundColor: bgColor,
-          borderColor,
-          borderWidth: variant === 'secondary' ? 1 : 0,
-          alignSelf: fullWidth ? 'stretch' : 'flex-start',
-          opacity: disabled ? 0.5 : 1,
-        },
-        style,
-      ]}
+      style={buttonStyle} 
     >
       {loading ? (
         <ActivityIndicator color={textColor} size="small" />
       ) : (
-        <Text style={[textTypo, { color: textColor }, textStyle]}>{label}</Text>
+        <Text style={[textTypo, { color: textColor }, textStyle]}>
+          {label}
+        </Text>
       )}
     </AnimatedPressable>
   );

@@ -1,7 +1,7 @@
 """
 Pydantic schemas for request validation and response serialization.
 """
-from datetime import date, datetime, time
+from datetime import date, datetime
 from typing import List, Optional
 from pydantic import BaseModel, EmailStr, Field
 from .models import ScheduleStatus, TaskStatus
@@ -17,13 +17,21 @@ class UserCreate(UserBase):
 
 class UserUpdate(BaseModel):
     username: Optional[str] = Field(None, min_length=3, max_length=50)
+    email: Optional[EmailStr] = None
     home_address: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    profile_picture: Optional[str] = None
 
 class UserResponse(UserBase):
     id: int
     is_active: bool
-    home_address: Optional[str]
+    home_address: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
     created_at: datetime
+    profile_picture: Optional[str] = None
+
     class Config:
         from_attributes = True
 
@@ -78,11 +86,11 @@ class ScheduleItemBase(BaseModel):
     position: int
     scheduled_start: datetime
     scheduled_end: datetime
-    travel_time_minutes: Optional[int] = None
+    task: TaskResponse
+    travel_time_minutes: Optional[int] = 0
 
 class ScheduleItemResponse(ScheduleItemBase):
     id: int
-    task: TaskResponse # This nests the full task info inside the schedule item
 
     class Config:
         from_attributes = True

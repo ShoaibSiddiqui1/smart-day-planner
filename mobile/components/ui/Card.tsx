@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Pressable, StyleSheet, ViewStyle } from 'react-native';
+import { View, Pressable, StyleSheet, ViewStyle, StyleProp } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -11,7 +11,7 @@ import { BorderRadius, Shadows, Spacing } from '@/constants/theme';
 interface CardProps {
   children: React.ReactNode;
   onPress?: () => void;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   /** Remove padding — useful when the card contains full-bleed content */
   noPad?: boolean;
 }
@@ -26,7 +26,7 @@ export function Card({ children, onPress, style, noPad = false }: CardProps) {
     transform: [{ scale: scale.value }],
   }));
 
-  const cardStyle = [
+  const cardStyle: StyleProp<ViewStyle> = [
     styles.card,
     Shadows.sm,
     {

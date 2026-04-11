@@ -4,7 +4,7 @@ It defines the SQLAIchemy ORM models for the Smart Day Planner
 Includes user accounts and their associated tasks
 """
 
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Float, DateTime, Date
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Float, DateTime, Date, UniqueConstraint
 from sqlalchemy.orm import relationship
 from .database import Base ## this will come from DB connection files
 import enum
@@ -22,25 +22,34 @@ class ScheduleStatus(str, enum.Enum):
     ARCHIVED = "archived"
 
 class User(Base):
-  """
-  This respresents a user in the system
-  Attributes:
+    """
+    This respresents a user in the system
+    Attributes:
         -username(string): unique identifier for login
         -emails(string): unique email address
         -hashed_password(string): the bcrypt hashed password for security requirements
         -tasks(list): relationship to task model
 
-  """
-  __tablename__ = "users"
-  id = Column(Integer, primary_key = True, index = True)
-  username = Column(String, unique = True, index = True, nullable = False)
-  email = Column(String, unique=True, index=True, nullable=False)
-  hashed_password = Column(String, nullable=False)
-  is_active = Column(Boolean, default = True)
-  home_address = Column(String, nullable=True)
-  created_at = Column(DateTime, default=datetime.utcnow)
+    """
+    __tablename__ = "users"
 
-  tasks = relationship('Task', back_populates = 'owner')
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True, nullable=False)
+    email = Column(String, unique=True, index=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
+
+    profile_picture = Column(String, nullable=True)
+
+    is_active = Column(Boolean, default=True)
+    home_address = Column(String, nullable=True)
+
+
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    tasks = relationship('Task', back_populates='owner')
 
 class Task(Base):
     """
@@ -82,16 +91,22 @@ class Task(Base):
 
 class Schedule(Base):
     __tablename__ = "schedules"
+    __table_args__ = (
+        UniqueConstraint("user_id", "schedule_date", name="uq_user_schedule_date"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
-    schedule_date = Column(Date, default=datetime.utcnow().date)
-    status = Column(String, default="generated") # e.g., generated, started, completed
+    schedule_date = Column(Date, default=lambda: datetime.utcnow().date())
+    status = Column(String, default="generated")
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    # Relationship to the individual items
-    items = relationship("ScheduleItem", back_populates="schedule", cascade="all, delete-orphan")
+
+    items = relationship(
+        "ScheduleItem",
+        back_populates="schedule",
+        cascade="all, delete-orphan"
+    )
 
 class ScheduleItem(Base):
     __tablename__ = "schedule_items"
@@ -99,9 +114,10 @@ class ScheduleItem(Base):
     id = Column(Integer, primary_key=True, index=True)
     schedule_id = Column(Integer, ForeignKey("schedules.id"))
     task_id = Column(Integer, ForeignKey("tasks.id"))
-    position = Column(Integer) # The order (0, 1, 2...)
+    position = Column(Integer)
     scheduled_start = Column(DateTime)
     scheduled_end = Column(DateTime)
+    travel_time_minutes = Column(Integer, default=0)
 
     schedule = relationship("Schedule", back_populates="items")
-    task = relationship("Task") # Links back to the original task details
+    task = relationship("Task")

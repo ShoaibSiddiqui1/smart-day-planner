@@ -1,126 +1,284 @@
-import { View, Text, Switch, StyleSheet } from 'react-native';
-import { useState } from 'react';
-import { useRouter } from 'expo-router';
-import { ScreenContainer } from '@/components/layout/ScreenContainer';
-import { Header } from '@/components/layout/Header';
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
+import React, { useMemo, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Switch,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+  Image,
+} from 'react-native';
 import { useTheme } from '@/hooks/use-theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Typography, Spacing, BorderRadius } from '@/constants/theme';
 
 export default function SettingsScreen() {
-  const router = useRouter();
   const theme = useTheme();
-  const scheme = useColorScheme() ?? 'light';
+  const { isDark, toggleTheme } = theme;
 
-  const [remindersEnabled, setRemindersEnabled] = useState(true);
-  const [routeAlertsEnabled, setRouteAlertsEnabled] = useState(true);
-  const [darkModePreview, setDarkModePreview] = useState(scheme === 'dark');
+  const [taskReminders, setTaskReminders] = useState(true);
+  const [routeUpdates, setRouteUpdates] = useState(true);
 
-  const settingRows = [
-    {
-      title: 'Task reminders',
-      subtitle: 'Get alerts before tasks begin',
-      value: remindersEnabled,
-      onChange: setRemindersEnabled,
-    },
-    {
-      title: 'Route updates',
-      subtitle: 'Traffic and travel change alerts',
-      value: routeAlertsEnabled,
-      onChange: setRouteAlertsEnabled,
-    },
-    {
-      title: 'Dark mode preview',
-      subtitle: 'UI preview toggle',
-      value: darkModePreview,
-      onChange: setDarkModePreview,
-    },
-  ];
+  const styles = useMemo(() => createStyles(theme, isDark), [theme, isDark]);
+
+  const user = {
+    name: 'Wayne',
+    email: 'cheng.yue38@myhunter.cuny.edu',
+    profilePicture: '',
+  };
+
+  const handleChangeProfilePicture = () => {
+    Alert.alert('Change profile picture', 'Connect your image picker here.');
+  };
+
+  const handleLogout = () => {
+    Alert.alert('Logout', 'Hook up your logout logic here.');
+  };
 
   return (
-    <ScreenContainer>
-      <Header title="Settings" subtitle="Manage reminders, preferences, and your account." />
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.contentContainer}
+      showsVerticalScrollIndicator={false}
+    >
+      <Text style={styles.title}>Settings</Text>
+      <Text style={styles.subtitle}>Manage your account</Text>
 
-      {/* Profile card */}
-      <Card style={styles.profileCard}>
-        <View style={[styles.avatar, { backgroundColor: theme.tint }]}>
-          <Text style={styles.avatarText}>SD</Text>
-        </View>
-        <View style={styles.profileInfo}>
-          <Text style={[styles.name, { color: theme.text }]}>Shoaib Siddiqui</Text>
-          <Text style={[styles.email, { color: theme.subtext }]}>shoaib@example.com</Text>
-        </View>
-      </Card>
-
-      {/* Preferences */}
-      <Card>
-        {settingRows.map((row, i) => (
-          <View key={row.title}>
-            <View style={styles.settingRow}>
-              <View style={styles.settingText}>
-                <Text style={[styles.settingTitle, { color: theme.text }]}>{row.title}</Text>
-                <Text style={[styles.settingSubtitle, { color: theme.subtext }]}>{row.subtitle}</Text>
-              </View>
-              <Switch
-                value={row.value}
-                onValueChange={row.onChange}
-                trackColor={{ true: theme.tint }}
-              />
-            </View>
-            {i < settingRows.length - 1 && (
-              <View style={[styles.divider, { backgroundColor: theme.border }]} />
-            )}
+      <TouchableOpacity style={styles.profileCard} activeOpacity={0.85}>
+        {user.profilePicture ? (
+          <Image source={{ uri: user.profilePicture }} style={styles.avatarImage} />
+        ) : (
+          <View style={styles.avatarPlaceholder}>
+            <Text style={styles.avatarText}>{user.name.charAt(0).toUpperCase()}</Text>
           </View>
-        ))}
-      </Card>
+        )}
 
-      {/* About */}
-      <Card>
-        <Text style={[styles.settingTitle, { color: theme.text, marginBottom: Spacing.xs }]}>About</Text>
-        <Text style={[styles.settingSubtitle, { color: theme.subtext }]}>
-          Smart Day Planner helps users organize tasks, view schedules, and preview optimized routes.
-        </Text>
-      </Card>
+        <View style={styles.profileInfo}>
+          <Text style={styles.profileName}>{user.name}</Text>
+          <Text style={styles.profileEmail}>{user.email}</Text>
+          <Text style={styles.profileHint}>Tap your avatar to change profile picture</Text>
+        </View>
+      </TouchableOpacity>
 
-      {/* Logout */}
-      <Button
-        label="Logout"
-        variant="danger"
-        fullWidth
-        onPress={() => router.replace('/login')}
-        style={styles.logoutBtn}
-      />
-    </ScreenContainer>
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Appearance</Text>
+
+        <View style={styles.row}>
+          <View style={styles.rowText}>
+            <Text style={styles.rowTitle}>Dark mode</Text>
+            <Text style={styles.rowSubtitle}>Switch between light and dark theme</Text>
+          </View>
+
+          <Switch
+            value={isDark}
+            onValueChange={toggleTheme}
+            thumbColor={isDark ? theme.tint : theme.card}
+            trackColor={{
+              false: theme.border,
+              true: theme.accent,
+            }}
+          />
+        </View>
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Notifications</Text>
+
+        <View style={styles.row}>
+          <View style={styles.rowText}>
+            <Text style={styles.rowTitle}>Task reminders</Text>
+            <Text style={styles.rowSubtitle}>Reminder alerts for scheduled tasks</Text>
+          </View>
+
+          <Switch
+            value={taskReminders}
+            onValueChange={setTaskReminders}
+            thumbColor={taskReminders ? theme.tint : theme.card}
+            trackColor={{
+              false: theme.border,
+              true: theme.accent,
+            }}
+          />
+        </View>
+
+        <View style={styles.divider} />
+
+        <View style={styles.row}>
+          <View style={styles.rowText}>
+            <Text style={styles.rowTitle}>Route updates</Text>
+            <Text style={styles.rowSubtitle}>Alerts when your route or schedule changes</Text>
+          </View>
+
+          <Switch
+            value={routeUpdates}
+            onValueChange={setRouteUpdates}
+            thumbColor={routeUpdates ? theme.tint : theme.card}
+            trackColor={{
+              false: theme.border,
+              true: theme.accent,
+            }}
+          />
+        </View>
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Account</Text>
+
+        <TouchableOpacity style={styles.secondaryButton} onPress={handleChangeProfilePicture}>
+          <Text style={styles.secondaryButtonText}>Change profile picture</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <Text style={styles.logoutButtonText}>Logout</Text>
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
-  profileCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  avatar: {
-    width: 52,
-    height: 52,
-    borderRadius: BorderRadius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: { color: 'white', fontWeight: '800', fontSize: 18 },
-  profileInfo: { flex: 1 },
-  name: { ...Typography.h4 },
-  email: { ...Typography.bodySm, marginTop: 2 },
-  settingRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  settingText: { flex: 1, paddingRight: Spacing.sm },
-  settingTitle: { ...Typography.h4, marginBottom: 2 },
-  settingSubtitle: { ...Typography.bodySm },
-  divider: { height: 1, marginVertical: Spacing.md },
-  logoutBtn: { marginTop: Spacing.xs },
-});
+function createStyles(theme: ReturnType<typeof useTheme>, isDark: boolean) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.background,
+    },
+    contentContainer: {
+      padding: 20,
+      paddingBottom: 120,
+    },
+    title: {
+      fontSize: 22,
+      fontWeight: '700',
+      color: theme.text,
+      marginTop: 8,
+    },
+    subtitle: {
+      fontSize: 16,
+      color: theme.subtext,
+      marginTop: 8,
+      marginBottom: 16,
+    },
+    profileCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.card,
+      borderRadius: 20,
+      padding: 16,
+      marginBottom: 18,
+      borderWidth: 1,
+      borderColor: theme.border,
+      shadowColor: '#000',
+      shadowOpacity: isDark ? 0.2 : 0.08,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 3 },
+      elevation: 3,
+    },
+    avatarImage: {
+      width: 72,
+      height: 72,
+      borderRadius: 36,
+    },
+    avatarPlaceholder: {
+      width: 72,
+      height: 72,
+      borderRadius: 36,
+      backgroundColor: theme.tint,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    avatarText: {
+      fontSize: 30,
+      fontWeight: '700',
+      color: '#FFFFFF',
+    },
+    profileInfo: {
+      flex: 1,
+      marginLeft: 16,
+    },
+    profileName: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.text,
+      marginBottom: 4,
+    },
+    profileEmail: {
+      fontSize: 15,
+      color: theme.subtext,
+      marginBottom: 8,
+    },
+    profileHint: {
+      fontSize: 14,
+      color: theme.subtext,
+    },
+    card: {
+      backgroundColor: theme.card,
+      borderRadius: 20,
+      padding: 18,
+      marginBottom: 18,
+      borderWidth: 1,
+      borderColor: theme.border,
+      shadowColor: '#000',
+      shadowOpacity: isDark ? 0.2 : 0.08,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 3 },
+      elevation: 3,
+    },
+    sectionTitle: {
+      fontSize: 17,
+      fontWeight: '700',
+      color: theme.text,
+      marginBottom: 14,
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    rowText: {
+      flex: 1,
+      paddingRight: 16,
+    },
+    rowTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.text,
+    },
+    rowSubtitle: {
+      fontSize: 14,
+      color: theme.subtext,
+      marginTop: 4,
+      lineHeight: 20,
+    },
+    divider: {
+      height: 1,
+      backgroundColor: theme.border,
+      marginVertical: 16,
+    },
+    secondaryButton: {
+      height: 56,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: theme.border,
+      backgroundColor: theme.background,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 14,
+    },
+    secondaryButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.text,
+    },
+    logoutButton: {
+      height: 56,
+      borderRadius: 16,
+      backgroundColor: '#EF4444',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    logoutButtonText: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: '#FFFFFF',
+    },
+  });
+}

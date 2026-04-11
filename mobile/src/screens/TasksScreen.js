@@ -8,7 +8,7 @@ import { ThemedView } from '../components/themed-view';
 import { ThemedText } from '../components/themed-text';
 import { Colors } from '../constants/theme';
 
-const API_URL = "http://192.168.1.175:8000"
+const API_URL = "http://localhost:8000";
 
 export default function TasksScreen() {
   const [tasks, setTasks] = useState([]);
@@ -18,6 +18,10 @@ export default function TasksScreen() {
     setLoading(true);
     try {
       const token = await AsyncStorage.getItem('userToken');
+      if (!token) {
+        console.error("No token found. User not logged in.");
+        return;
+}
       // Hardcoded coords for testing (Times Square)
       const lat = 40.7580;
       const lon = -73.9855;
@@ -26,7 +30,11 @@ export default function TasksScreen() {
        headers: { Authorization: `Bearer ${token}` }});
 
       const data = await response.json();
-      if (response.ok) setTasks(data);
+      if (response.ok) {
+        setTasks(data);
+      } else {
+        console.error("Error:", data);
+      }
     } catch (error) {
       console.error("Failed to fetch optimized tasks", error);
     } finally {
