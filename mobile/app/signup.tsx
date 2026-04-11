@@ -1,44 +1,75 @@
+import React, { useState } from 'react';
 import {
-  View, Text, TextInput, Pressable,
-  StyleSheet, KeyboardAvoidingView, Platform, ScrollView,
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+
 import { AppBackground } from '@/components/layout/AppBackground';
 import { Button } from '@/components/ui/Button';
 import { authApi } from '@/services/api';
 import { Typography, Spacing, BorderRadius } from '@/constants/theme';
 
-const DARK_CARD   = 'rgba(4, 16, 30, 0.82)';
-const DARK_INPUT  = 'rgba(255,255,255,0.07)';
+const DARK_CARD = 'rgba(4, 16, 30, 0.82)';
+const DARK_INPUT = 'rgba(255,255,255,0.07)';
 const DARK_BORDER = 'rgba(20, 184, 166, 0.25)';
-const TEXT        = '#F8FAFC';
-const SUBTEXT     = 'rgba(255,255,255,0.55)';
-const TEAL        = '#14B8A6';
-const BLUE        = '#3B82F6';
+const TEXT = '#F8FAFC';
+const SUBTEXT = 'rgba(255,255,255,0.55)';
+const TEAL = '#14B8A6';
+const BLUE = '#3B82F6';
 
 export default function Signup() {
   const router = useRouter();
+
   const [username, setUsername] = useState('');
-  const [email, setEmail]       = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError]       = useState('');
-  const [loading, setLoading]   = useState(false);
+
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleSignup = async () => {
-    if (!username.trim() || !email.trim() || !password) {
+    const trimmedUsername = username.trim();
+    const trimmedEmail = email.trim();
+
+    if (!trimmedUsername || !trimmedEmail || !password) {
       setError('All fields are required.');
       return;
     }
+
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters.');
+      return;
+    }
+
     setError('');
     setLoading(true);
+
     try {
-      await authApi.register(username.trim(), email.trim(), password);
-      router.replace('/login');
+      await authApi.register({
+        username: trimmedUsername,
+        email: trimmedEmail,
+        password,
+      });
+
+      Alert.alert('Success', 'Account created successfully.', [
+        {
+          text: 'Go to Login',
+          onPress: () => router.replace('/login'),
+        },
+      ]);
     } catch (e: any) {
-      const detail = e?.response?.data?.detail;
-      setError(detail ?? 'Registration failed. Please try again.');
+      console.error('SIGNUP ERROR:', e);
+      setError(e?.message || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -57,13 +88,11 @@ export default function Signup() {
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            {/* Brand */}
             <View style={styles.brand}>
               <View style={styles.brandDot} />
               <Text style={styles.brandText}>SmartDayPlanner</Text>
             </View>
 
-            {/* Card */}
             <View style={styles.card}>
               <Text style={styles.title}>Create account</Text>
               <Text style={styles.subtitle}>
@@ -74,30 +103,42 @@ export default function Signup() {
                 placeholder="Full name"
                 value={username}
                 onChangeText={setUsername}
+                editable={!loading}
               />
+
               <DarkInput
                 placeholder="Email address"
                 value={email}
                 onChangeText={setEmail}
                 autoCapitalize="none"
+                autoCorrect={false}
                 keyboardType="email-address"
+                editable={!loading}
               />
+
               <DarkInput
                 placeholder="Password"
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
+                editable={!loading}
               />
 
               {error ? <Text style={styles.error}>{error}</Text> : null}
 
               <Button
-                label="Sign Up"
+                label={loading ? 'Signing Up...' : 'Sign Up'}
                 fullWidth
-                loading={loading}
                 onPress={handleSignup}
                 style={styles.primaryBtn}
               />
+
+              {loading && (
+                <View style={styles.loadingRow}>
+                  <ActivityIndicator size="small" color={TEAL} />
+                  <Text style={styles.loadingText}>Creating your account...</Text>
+                </View>
+              )}
 
               <View style={styles.dividerRow}>
                 <View style={styles.dividerLine} />
@@ -105,7 +146,11 @@ export default function Signup() {
                 <View style={styles.dividerLine} />
               </View>
 
-              <Pressable onPress={() => router.back()} style={styles.secondaryBtn}>
+              <Pressable
+                onPress={() => router.back()}
+                style={styles.secondaryBtn}
+                disabled={loading}
+              >
                 <Text style={styles.secondaryBtnText}>Back to login</Text>
               </Pressable>
             </View>
@@ -129,7 +174,7 @@ function DarkInput(props: React.ComponentProps<typeof TextInput>) {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#04101E' },
   safe: { flex: 1 },
-  kav:  { flex: 1 },
+  kav: { flex: 1 },
   scroll: {
     flexGrow: 1,
     justifyContent: 'center',
@@ -144,7 +189,8 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   brandDot: {
-    width: 10, height: 10,
+    width: 10,
+    height: 10,
     borderRadius: BorderRadius.full,
     backgroundColor: TEAL,
   },
@@ -193,6 +239,17 @@ const styles = StyleSheet.create({
     backgroundColor: BLUE,
     borderRadius: BorderRadius.md,
   },
+  loadingRow: {
+    marginTop: Spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+  },
+  loadingText: {
+    ...Typography.caption,
+    color: SUBTEXT,
+  },
   dividerRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -200,7 +257,8 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   dividerLine: {
-    flex: 1, height: 1,
+    flex: 1,
+    height: 1,
     backgroundColor: DARK_BORDER,
   },
   dividerText: {

@@ -1,11 +1,11 @@
 import React from 'react';
 import {
-  ScrollView,
   View,
   StyleSheet,
   ViewStyle,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '@/hooks/use-theme';
@@ -14,20 +14,16 @@ import { AnimatedBackground } from './AnimatedBackground';
 
 interface ScreenContainerProps {
   children: React.ReactNode;
-  /** Set false for full-screen non-scrollable screens (e.g. Map) */
   scrollable?: boolean;
-  /** Extra padding at the bottom — defaults to 108 so content clears the floating tab bar */
   bottomPad?: number;
   style?: ViewStyle;
-  /** Wrap in KeyboardAvoidingView — useful for form screens */
   avoidKeyboard?: boolean;
-  /** Background animation variant: 'gradient', 'waves', or 'subtle' (default) */
   bgVariant?: 'gradient' | 'waves' | 'subtle';
 }
 
 export function ScreenContainer({
   children,
-  scrollable = true,
+  scrollable = false,
   bottomPad = 120,
   style,
   avoidKeyboard = false,
@@ -35,32 +31,45 @@ export function ScreenContainer({
 }: ScreenContainerProps) {
   const theme = useTheme();
 
-  const inner = scrollable ? (
+  const content = scrollable ? (
     <ScrollView
-      contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomPad }, style]}
+      contentContainerStyle={[
+        styles.scrollContent,
+        { paddingBottom: bottomPad },
+        style,
+      ]}
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
     >
       {children}
     </ScrollView>
   ) : (
-    <View style={[styles.fill, style]}>{children}</View>
+    <View style={[styles.content, style]}>{children}</View>
   );
 
-  const content = avoidKeyboard ? (
+  const wrapped = avoidKeyboard ? (
     <KeyboardAvoidingView
       style={styles.fill}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      {inner}
+      {content}
     </KeyboardAvoidingView>
-  ) : inner;
+  ) : (
+    content
+  );
 
   return (
     <View style={[styles.safe, { backgroundColor: theme.background }]}>
-      <AnimatedBackground variant={bgVariant} />
-      <SafeAreaView style={styles.safeOverlay}>
-        {content}
+      {/*  Pass isDark down */}
+      <AnimatedBackground
+        variant={bgVariant}
+        isDark={theme.isDark}
+        background={theme.background}
+      />
+
+      {/* Prevent overlay from forcing white */}
+      <SafeAreaView style={[styles.safeOverlay, { backgroundColor: 'transparent' }]}>
+        {wrapped}
       </SafeAreaView>
     </View>
   );
@@ -69,7 +78,15 @@ export function ScreenContainer({
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   safeOverlay: { flex: 1 },
+
   fill: { flex: 1 },
+
+  content: {
+    flex: 1,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.md,
+  },
+
   scrollContent: {
     paddingHorizontal: Spacing.md,
     paddingTop: Spacing.md,

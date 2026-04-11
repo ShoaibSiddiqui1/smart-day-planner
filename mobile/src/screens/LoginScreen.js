@@ -5,62 +5,57 @@ import { ThemedText } from '../components/themed-text';
 import { ThemedView } from '../components/themed-view';
 import { Colors } from '../constants/theme';
 
-// Ensure this IP matches your current WSL 'hostname -I'
- const API_URL = "http://192.168.1.175:8000"
-
+// ✅ Use localhost for Expo Web
+const API_URL = "http://localhost:8000";
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
+  
   const handleLogin = async () => {
-    // 1. HARD BLOCK: If fields are empty, do not even try the network
+    console.log("LOGIN BUTTON CLICKED");
+
     if (!email.trim() || !password.trim()) {
-      Alert.alert("Input Error", "Please enter both email and password.");
+      alert("Please enter email and password");
       return;
     }
 
     setLoading(true);
-    console.log(`Attempting login for: ${email.trim()}`);
 
     try {
       const params = new URLSearchParams();
-      params.append('username', email.trim()); 
-      params.append('password', password);
+      params.append("username", email);
+      params.append("password", password);
 
-      const response = await fetch(`${API_URL}/login`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Accept': 'application/json'
+      console.log("Sending request...");
+
+      const response = await fetch("http://localhost:8000/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
         },
         body: params.toString(),
       });
 
       const data = await response.json();
-      console.log("Server Response Status:", response.status);
 
-      // 2. SUCCESS PATH: Must be status 200 AND have a token
-      if (response.ok && data.access_token) {
-        await AsyncStorage.setItem('userToken', data.access_token);
-        console.log("Login Success: Token stored.");
-        
-        // Clear local state so the fields are empty if user logs out later
-        setEmail('');
-        setPassword('');
-        
+      console.log("STATUS:", response.status);
+      console.log("DATA:", data);
+
+      if (response.status === 200 && data.access_token) {
+        console.log("LOGIN SUCCESS");
+
+        // ✅ THIS IS THE CORRECT NAVIGATION
         navigation.navigate('Tasks');
-      } 
-      // 3. FAILURE PATH: Backend rejected credentials
-      else {
-        console.warn("Login Failed:", data.detail);
-        const errorMsg = typeof data.detail === 'string' ? data.detail : "Invalid email or password.";
-        Alert.alert("Unauthorized", errorMsg);
+      } else {
+        alert(data.detail || "Invalid email or password");
       }
-    } catch (error) {
-      console.error("Network Error:", error);
-      Alert.alert("Connection Error", "Check your backend IP and ensure it is running on host 0.0.0.0");
+
+    } catch (err) {
+      console.error("LOGIN ERROR:", err);
+      alert("Network error");
     } finally {
       setLoading(false);
     }
@@ -75,17 +70,18 @@ export default function LoginScreen({ navigation }) {
         <TextInput 
           placeholder="Email" 
           value={email}
-          onChangeText={(text) => setEmail(text)} // Explicit state binding
+          onChangeText={setEmail}
           style={styles.input} 
           placeholderTextColor={Colors.light.icon}
           autoCapitalize="none"
           keyboardType="email-address"
           autoCorrect={false}
         />
+
         <TextInput 
           placeholder="Password" 
           value={password}
-          onChangeText={(text) => setPassword(text)} // Explicit state binding
+          onChangeText={setPassword}
           secureTextEntry 
           style={styles.input} 
           placeholderTextColor={Colors.light.icon}
@@ -101,7 +97,9 @@ export default function LoginScreen({ navigation }) {
         </View>
 
         <View style={styles.buttonWrapper}>
-          <ThemedText style={{ textAlign: 'center', marginBottom: 5 }}>Don't have an account?</ThemedText>
+          <ThemedText style={{ textAlign: 'center', marginBottom: 5 }}>
+            Don't have an account?
+          </ThemedText>
           <Button 
             title="Sign Up" 
             onPress={() => navigation.navigate('Signup')} 

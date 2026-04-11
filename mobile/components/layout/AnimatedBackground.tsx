@@ -7,20 +7,22 @@ import Animated, {
   withTiming,
   Easing,
 } from 'react-native-reanimated';
-import { useTheme } from '@/hooks/use-theme';
 
 interface AnimatedBackgroundProps {
   variant?: 'gradient' | 'waves' | 'subtle';
+  isDark: boolean;
+  background: string;
 }
 
-export function AnimatedBackground({ variant = 'subtle' }: AnimatedBackgroundProps) {
-  const theme = useTheme();
-
+export function AnimatedBackground({
+  variant = 'subtle',
+  isDark,
+  background,
+}: AnimatedBackgroundProps) {
   const rotate1 = useSharedValue(0);
   const rotate2 = useSharedValue(0);
 
   useEffect(() => {
-    // Continuous rotating animation for gradient orbs
     rotate1.value = withRepeat(
       withTiming(360, {
         duration: 20000,
@@ -36,7 +38,7 @@ export function AnimatedBackground({ variant = 'subtle' }: AnimatedBackgroundPro
       }),
       -1
     );
-  }, [rotate1, rotate2]);
+  }, []);
 
   const animated1 = useAnimatedStyle(() => ({
     transform: [{ rotate: `${rotate1.value}deg` }],
@@ -46,29 +48,26 @@ export function AnimatedBackground({ variant = 'subtle' }: AnimatedBackgroundPro
     transform: [{ rotate: `${rotate2.value}deg` }],
   }));
 
-  const isDark = theme.background === '#0F172A';
+  // 🌑 DARK MODE COLORS (deep, not glowing)
+  const darkPrimary = '#1E293B';   // slate
+  const darkSecondary = '#020617'; // near black
+
+  // 🌞 LIGHT MODE COLORS
+  const lightPrimary = '#3B82F6';
+  const lightSecondary = '#06B6D4';
 
   if (variant === 'gradient') {
     return (
       <View style={styles.container}>
-        {/* Base solid background */}
-        <View
-          style={[
-            styles.base,
-            {
-              backgroundColor: theme.background,
-            },
-          ]}
-        />
+        <View style={[styles.base, { backgroundColor: background }]} />
 
-        {/* Gradient orbs with animation */}
         <Animated.View style={[styles.orb1, animated1]}>
           <View
             style={[
               styles.orbGradient,
               {
-                backgroundColor: isDark ? '#2563EB' : '#3B82F6',
-                opacity: isDark ? 0.25 : 0.15,
+                backgroundColor: isDark ? darkPrimary : lightPrimary,
+                opacity: isDark ? 0.4 : 0.15,
               },
             ]}
           />
@@ -79,8 +78,8 @@ export function AnimatedBackground({ variant = 'subtle' }: AnimatedBackgroundPro
             style={[
               styles.orbGradient,
               {
-                backgroundColor: isDark ? '#14B8A6' : '#06B6D4',
-                opacity: isDark ? 0.2 : 0.1,
+                backgroundColor: isDark ? darkSecondary : lightSecondary,
+                opacity: isDark ? 0.5 : 0.1,
               },
             ]}
           />
@@ -92,37 +91,28 @@ export function AnimatedBackground({ variant = 'subtle' }: AnimatedBackgroundPro
   if (variant === 'waves') {
     return (
       <View style={styles.container}>
-        <View
-          style={[
-            styles.base,
-            {
-              backgroundColor: theme.background,
-            },
-          ]}
-        />
+        <View style={[styles.base, { backgroundColor: background }]} />
 
-        {/* Top gradient wave */}
         <Animated.View style={[styles.wave1, animated1]}>
           <View
             style={[
               styles.waveFill,
               {
                 backgroundColor: isDark
-                  ? 'rgba(37, 99, 235, 0.1)'
+                  ? 'rgba(30, 41, 59, 0.25)'
                   : 'rgba(59, 130, 246, 0.08)',
               },
             ]}
           />
         </Animated.View>
 
-        {/* Bottom gradient wave */}
         <Animated.View style={[styles.wave2, animated2]}>
           <View
             style={[
               styles.waveFill,
               {
                 backgroundColor: isDark
-                  ? 'rgba(20, 184, 166, 0.08)'
+                  ? 'rgba(2, 6, 23, 0.3)'
                   : 'rgba(6, 182, 212, 0.06)',
               },
             ]}
@@ -132,26 +122,18 @@ export function AnimatedBackground({ variant = 'subtle' }: AnimatedBackgroundPro
     );
   }
 
-  // Default: subtle background
+  // 🌟 DEFAULT: subtle (best)
   return (
     <View style={styles.container}>
-      <View
-        style={[
-          styles.base,
-          {
-            backgroundColor: theme.background,
-          },
-        ]}
-      />
+      <View style={[styles.base, { backgroundColor: background }]} />
 
-      {/* Subtle accent orbs - very light and slow */}
       <Animated.View style={[styles.subtleOrb1, animated1]}>
         <View
           style={[
             styles.subtleOrbFill,
             {
-              backgroundColor: isDark ? '#2563EB' : '#3B82F6',
-              opacity: isDark ? 0.08 : 0.04,
+              backgroundColor: isDark ? darkPrimary : lightPrimary,
+              opacity: isDark ? 0.4 : 0.04,
             },
           ]}
         />
@@ -162,8 +144,8 @@ export function AnimatedBackground({ variant = 'subtle' }: AnimatedBackgroundPro
           style={[
             styles.subtleOrbFill,
             {
-              backgroundColor: isDark ? '#14B8A6' : '#06B6D4',
-              opacity: isDark ? 0.06 : 0.03,
+              backgroundColor: isDark ? darkSecondary : lightSecondary,
+              opacity: isDark ? 0.5 : 0.03,
             },
           ]}
         />
@@ -174,18 +156,15 @@ export function AnimatedBackground({ variant = 'subtle' }: AnimatedBackgroundPro
 
 const styles = StyleSheet.create({
   container: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    ...StyleSheet.absoluteFillObject,
     overflow: 'hidden',
+    zIndex: -1, // ✅ keeps background behind everything
   },
+
   base: {
     flex: 1,
   },
 
-  // Gradient variant orbs
   orb1: {
     position: 'absolute',
     top: '-30%',
@@ -204,10 +183,8 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     borderRadius: 999,
-    blur: 100,
   },
 
-  // Waves variant
   wave1: {
     position: 'absolute',
     top: '-20%',
@@ -227,7 +204,6 @@ const styles = StyleSheet.create({
     height: '100%',
   },
 
-  // Subtle variant orbs
   subtleOrb1: {
     position: 'absolute',
     top: '-50%',

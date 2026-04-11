@@ -1,30 +1,30 @@
-import { Tabs } from 'expo-router';
 import React from 'react';
+import { Tabs } from 'expo-router';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors, Shadows } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/use-theme';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const theme = useTheme();
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarButton: HapticTab,
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        tabBarInactiveTintColor: Colors[colorScheme ?? 'light'].icon,
+        tabBarActiveTintColor: theme.tabIconSelected,
+        tabBarInactiveTintColor: theme.tabIconDefault,
         tabBarStyle: {
-          backgroundColor: Colors[colorScheme ?? 'light'].background,
+          backgroundColor: theme.background,
           borderTopWidth: 0,
           borderRadius: 28,
           marginHorizontal: 16,
           marginBottom: 20,
           height: 68,
-          paddingBottom: 0,
-          paddingTop: 0,
+          paddingBottom: 8,
+          paddingTop: 8,
           position: 'absolute',
           ...Shadows.lg,
         },
@@ -34,21 +34,64 @@ export default function TabLayout() {
           marginTop: 2,
         },
         tabBarItemStyle: {
-          paddingVertical: 8,
+          paddingVertical: 4,
         },
-      }}>
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          tabBarIcon: ({ color, size }) => (
+            <MaterialIcons name="home" size={size ?? 24} color={color} />
+          ),
         }}
       />
+
+      <Tabs.Screen
+        name="tasks"
+        options={{
+          title: 'Tasks',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialIcons name="check-circle" size={size ?? 24} color={color} />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="schedule"
+        options={{
+          title: 'Schedule',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialIcons name="calendar-today" size={size ?? 24} color={color} />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="map"
+        options={{
+          title: 'Map',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialIcons name="map" size={size ?? 24} color={color} />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: 'Settings',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialIcons name="settings" size={size ?? 24} color={color} />
+          ),
+        }}
+      />
+
       <Tabs.Screen
         name="explore"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          href: null,
         }}
       />
     </Tabs>

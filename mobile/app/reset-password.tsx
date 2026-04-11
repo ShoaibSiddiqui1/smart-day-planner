@@ -1,48 +1,65 @@
+import React, { useState } from 'react';
 import {
-  View, Text, TextInput, Pressable,
-  StyleSheet, KeyboardAvoidingView, Platform, ScrollView,
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+
 import { AppBackground } from '@/components/layout/AppBackground';
 import { Button } from '@/components/ui/Button';
 import { authApi } from '@/services/api';
 import { Typography, Spacing, BorderRadius } from '@/constants/theme';
 
-const DARK_CARD   = 'rgba(4, 16, 30, 0.82)';
-const DARK_INPUT  = 'rgba(255,255,255,0.07)';
+const DARK_CARD = 'rgba(4, 16, 30, 0.82)';
+const DARK_INPUT = 'rgba(255,255,255,0.07)';
 const DARK_BORDER = 'rgba(20, 184, 166, 0.25)';
-const TEXT        = '#F8FAFC';
-const SUBTEXT     = 'rgba(255,255,255,0.55)';
-const TEAL        = '#14B8A6';
-const BLUE        = '#3B82F6';
+const TEXT = '#F8FAFC';
+const SUBTEXT = 'rgba(255,255,255,0.55)';
+const TEAL = '#14B8A6';
+const BLUE = '#3B82F6';
 
 export default function ResetPassword() {
   const router = useRouter();
-  const [token, setToken]               = useState('');
-  const [newPassword, setNewPassword]   = useState('');
-  const [confirmPassword, setConfirm]   = useState('');
-  const [error, setError]               = useState('');
-  const [success, setSuccess]           = useState(false);
-  const [loading, setLoading]           = useState(false);
+
+  const [token, setToken] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirm] = useState('');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleReset = async () => {
     if (!token.trim() || !newPassword || !confirmPassword) {
-      setError('All fields are required.'); return;
+      setError('All fields are required.');
+      return;
     }
+
     if (newPassword !== confirmPassword) {
-      setError('Passwords do not match.'); return;
+      setError('Passwords do not match.');
+      return;
     }
+
     if (newPassword.length < 8) {
-      setError('Password must be at least 8 characters.'); return;
+      setError('Password must be at least 8 characters.');
+      return;
     }
-    setError(''); setLoading(true);
+
+    setError('');
+    setLoading(true);
+
     try {
       await authApi.resetPassword(token.trim(), newPassword);
       setSuccess(true);
     } catch (e: any) {
-      setError(e?.response?.data?.detail ?? 'Invalid or expired reset code.');
+      console.error('RESET PASSWORD ERROR:', e);
+      setError(e?.message || 'Invalid or expired reset code.');
     } finally {
       setLoading(false);
     }
@@ -97,29 +114,41 @@ export default function ResetPassword() {
                 Enter the reset code from your email and choose a new password.
               </Text>
 
-              {[
-                { placeholder: 'Reset code',         value: token,       setter: setToken,       secure: false },
-                { placeholder: 'New password',       value: newPassword, setter: setNewPassword, secure: true  },
-                { placeholder: 'Confirm password',   value: confirmPassword, setter: setConfirm, secure: true  },
-              ].map(({ placeholder, value, setter, secure }) => (
-                <TextInput
-                  key={placeholder}
-                  style={styles.input}
-                  placeholder={placeholder}
-                  placeholderTextColor={SUBTEXT}
-                  autoCapitalize="none"
-                  secureTextEntry={secure}
-                  value={value}
-                  onChangeText={setter}
-                />
-              ))}
+              <TextInput
+                style={styles.input}
+                placeholder="Reset code"
+                placeholderTextColor={SUBTEXT}
+                autoCapitalize="none"
+                value={token}
+                onChangeText={setToken}
+                editable={!loading}
+              />
+
+              <TextInput
+                style={styles.input}
+                placeholder="New password"
+                placeholderTextColor={SUBTEXT}
+                secureTextEntry
+                value={newPassword}
+                onChangeText={setNewPassword}
+                editable={!loading}
+              />
+
+              <TextInput
+                style={styles.input}
+                placeholder="Confirm password"
+                placeholderTextColor={SUBTEXT}
+                secureTextEntry
+                value={confirmPassword}
+                onChangeText={setConfirm}
+                editable={!loading}
+              />
 
               {error ? <Text style={styles.error}>{error}</Text> : null}
 
               <Button
-                label="Reset Password"
+                label={loading ? 'Resetting...' : 'Reset Password'}
                 fullWidth
-                loading={loading}
                 onPress={handleReset}
                 style={styles.primaryBtn}
               />
@@ -138,7 +167,7 @@ export default function ResetPassword() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#04101E' },
   safe: { flex: 1 },
-  kav:  { flex: 1 },
+  kav: { flex: 1 },
   scroll: {
     flexGrow: 1,
     justifyContent: 'center',
@@ -158,7 +187,8 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   brandDot: {
-    width: 10, height: 10,
+    width: 10,
+    height: 10,
     borderRadius: BorderRadius.full,
     backgroundColor: TEAL,
   },
@@ -176,8 +206,18 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
     color: TEAL,
   },
-  title:    { ...Typography.h1, color: TEXT,    textAlign: 'center', marginBottom: Spacing.xs },
-  subtitle: { ...Typography.body, color: SUBTEXT, textAlign: 'center', marginBottom: Spacing.lg },
+  title: {
+    ...Typography.h1,
+    color: TEXT,
+    textAlign: 'center',
+    marginBottom: Spacing.xs,
+  },
+  subtitle: {
+    ...Typography.body,
+    color: SUBTEXT,
+    textAlign: 'center',
+    marginBottom: Spacing.lg,
+  },
   input: {
     backgroundColor: DARK_INPUT,
     borderWidth: 1,
@@ -189,8 +229,13 @@ const styles = StyleSheet.create({
     fontSize: 15,
     marginBottom: Spacing.sm + 2,
   },
-  error:      { ...Typography.caption, color: '#F87171', textAlign: 'center', marginBottom: Spacing.sm },
+  error: {
+    ...Typography.caption,
+    color: '#F87171',
+    textAlign: 'center',
+    marginBottom: Spacing.sm,
+  },
   primaryBtn: { backgroundColor: BLUE },
-  backLink:   { marginTop: Spacing.md, alignItems: 'center' },
-  backText:   { ...Typography.body, color: SUBTEXT, fontWeight: '600' },
+  backLink: { marginTop: Spacing.md, alignItems: 'center' },
+  backText: { ...Typography.body, color: SUBTEXT, fontWeight: '600' },
 });

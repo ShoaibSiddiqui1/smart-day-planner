@@ -1,168 +1,366 @@
-import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TextInput,
+  Alert,
+  Keyboard,
+  ActivityIndicator,
+} from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import { ScreenContainer } from '@/components/layout/ScreenContainer';
 import { Header } from '@/components/layout/Header';
 import { Card } from '@/components/ui/Card';
-import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { TaskItem, Task, Priority } from '@/components/ui/TaskItem';
-import { Badge } from '@/components/ui/Badge';
+
 import { useTheme } from '@/hooks/use-theme';
-import { Typography, Spacing } from '@/constants/theme';
+import { Typography, Spacing, BorderRadius } from '@/constants/theme';
+
+import { taskApi, scheduleApi } from '@/services/api';
+
+type Task = {
+  id: number;
+  title: string;
+  location: string;
+  duration_minutes?: number;
+  priority?: number;
+  earliest_start?: string;
+  latest_end?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+};
 
 export default function TasksScreen() {
   const theme = useTheme();
 
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [title, setTitle] = useState('');
   const [location, setLocation] = useState('');
-  const [duration, setDuration] = useState('');
-  const [notes, setNotes] = useState('');
-  const [priority, setPriority] = useState<Priority>('Medium');
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [duration, setDuration] = useState('30');
 
-  const [tasks, setTasks] = useState<Task[]>([
-    { id: '1', title: 'Grocery shopping', location: 'Trader Joe\'s', duration: '45 min', priority: 'High', notes: 'Buy fruits and milk' },
-    { id: '2', title: 'Library study session', location: 'Hunter Library', duration: '2 hrs', priority: 'Medium', notes: 'Review database notes' },
-    { id: '3', title: 'Pick up package', location: 'UPS Store', duration: '20 min', priority: 'Low', notes: 'Bring ID' },
-  ]);
+  const [loading, setLoading] = useState(true);
+  const [addingTask, setAddingTask] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const resetForm = () => {
-    setTitle(''); setLocation(''); setDuration(''); setNotes('');
-    setPriority('Medium'); setEditingId(null);
-  };
+  const loadTasks = async (showSpinner = false) => {
+    try {
+      if (showSpinner) setLoading(true);
 
-  const priorityColor = (p: Priority) => ({
-    High: theme.priorityHigh,
-    Medium: theme.priorityMedium,
-    Low: theme.priorityLow,
-  })[p];
+      const token = await AsyncStorage.getItem('token');
+      console.log('TOKEN (tasks):', token);
 
-  const handleSave = () => {
-    if (!title.trim()) return;
-    const newTask: Task = {
-      id: editingId ?? String(Date.now()),
-      title: title.trim(),
-      location: location.trim() || 'New destination',
-      duration: duration.trim() || '30 min',
-      notes: notes.trim(),
-      priority,
-    };
-    if (editingId) {
-      setTasks((prev) => prev.map((t) => (t.id === editingId ? newTask : t)));
-    } else {
-      setTasks((prev) => [newTask, ...prev]);
+      if (!token) {
+        console.log('No token found, skipping tasks request');
+        setTasks([]);
+        return;
+      }
+
+      const data = await taskApi.getAll();
+      console.log('TASKS RESPONSE:', data);
+
+      if (!Array.isArray(data)) {
+        console.error('Invalid tasks response:', data);
+        setTasks([]);
+        return;
+      }
+
+      setTasks(data);
+    } catch (err) {
+      console.error('Load tasks error:', err);
+      setTasks([]);
+      Alert.alert('Error', 'Failed to load tasks.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
-    resetForm();
   };
 
-  const handleEdit = (task: Task) => {
-    setTitle(task.title); setLocation(task.location); setDuration(task.duration);
-    setNotes(task.notes ?? ''); setPriority(task.priority); setEditingId(task.id);
+  const handleAddTask = async () => {
+    const trimmedTitle = title.trim();
+    const trimmedLocation = location.trim();
+    const parsedDuration = parseInt(duration.trim(), 10);
+
+    if (!trimmedTitle || !trimmedLocation) {
+      Alert.alert('Missing info', 'Please enter both a task title and a location.');
+      return;
+    }
+
+    if (!parsedDuration || parsedDuration <= 0) {
+      Alert.alert('Invalid duration', 'Please enter a valid duration in minutes.');
+      return;
+    }
+
+    try {
+      setAddingTask(true);
+      console.log('Creating task...');
+
+      await taskApi.create({
+        title: trimmedTitle,
+        location: trimmedLocation,
+        duration_minutes: parsedDuration,
+        priority: 1,
+      });
+
+      console.log('Task created successfully');
+
+      try {
+        console.log('Generating schedule...');
+        await scheduleApi.generate();
+        console.log('Schedule generated successfully');
+      } catch (scheduleErr) {
+        console.error('Schedule generation error:', scheduleErr);
+      }
+
+      setTitle('');
+      setLocation('');
+      setDuration('30');
+      Keyboard.dismiss();
+
+      await loadTasks();
+    } catch (err) {
+      console.error('Create task error:', err);
+      Alert.alert(
+        'Could not add task',
+        'Please use a real address or place name like "Times Square, New York" or "Hunter College, New York".'
+      );
+    } finally {
+      setAddingTask(false);
+    }
   };
 
-  const handleDelete = (id: string) => {
-    setTasks((prev) => prev.filter((t) => t.id !== id));
-    if (editingId === id) resetForm();
+  const handleDeleteTask = async (id: number) => {
+    Alert.alert('Delete Task', 'Are you sure you want to delete this task?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            console.log('Deleting task:', id);
+            await taskApi.delete(id);
+
+            setTasks((prev) => prev.filter((task) => task.id !== id));
+
+            try {
+              console.log('Regenerating schedule after delete...');
+              await scheduleApi.generate();
+            } catch (scheduleErr) {
+              console.error('Schedule regenerate error:', scheduleErr);
+            }
+
+            await loadTasks();
+          } catch (err) {
+            console.error('Delete task error:', err);
+            Alert.alert('Delete failed', 'Could not delete the task.');
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadTasks();
+  };
+
+  useEffect(() => {
+    loadTasks(true);
+  }, []);
+
+  const renderTask = ({ item }: { item: Task }) => {
+    const hasCoordinates =
+      item.latitude !== null &&
+      item.latitude !== undefined &&
+      item.longitude !== null &&
+      item.longitude !== undefined;
+
+    return (
+      <Card
+        style={[
+          styles.taskCard,
+          {
+            backgroundColor: theme.card,
+            borderColor: theme.border,
+          },
+        ]}
+      >
+        <Text style={[styles.title, { color: theme.text }]}>{item.title}</Text>
+
+        <Text style={[styles.meta, { color: theme.subtext }]}>📍 {item.location}</Text>
+
+        <Text style={[styles.meta, { color: theme.subtext }]}>
+          ⏱ {item.duration_minutes ?? 30} min
+        </Text>
+
+        <Text
+          style={[
+            styles.meta,
+            {
+              color: hasCoordinates ? theme.subtext : '#d97706',
+            },
+          ]}
+        >
+          {hasCoordinates ? '✅ Location recognized' : '⚠️ Location not recognized well'}
+        </Text>
+
+        <View style={styles.deleteButtonWrap}>
+          <Button
+            label="Delete"
+            variant="secondary"
+            onPress={() => handleDeleteTask(item.id)}
+          />
+        </View>
+      </Card>
+    );
   };
 
   return (
-    <ScreenContainer avoidKeyboard>
-      <Header title="Tasks" subtitle="Add, edit, and organize your tasks." />
+    <ScreenContainer>
+      <Header title="Tasks" subtitle="Manage your tasks" />
 
-      {/* Form card */}
-      <Card>
-        <Text style={[styles.formTitle, { color: theme.text }]}>
-          {editingId ? 'Edit Task' : 'New Task'}
-        </Text>
-
-        <Input
+      <Card
+        style={[
+          styles.card,
+          {
+            backgroundColor: theme.card,
+            borderColor: theme.border,
+          },
+        ]}
+      >
+        <TextInput
           placeholder="Task title"
+          placeholderTextColor={theme.subtext}
           value={title}
           onChangeText={setTitle}
+          style={[
+            styles.input,
+            {
+              color: theme.text,
+              borderColor: theme.border,
+              backgroundColor: theme.background,
+            },
+          ]}
         />
-        <Input
-          placeholder="Destination / location"
+
+        <TextInput
+          placeholder="Address or place name (e.g. Times Square, New York)"
+          placeholderTextColor={theme.subtext}
           value={location}
           onChangeText={setLocation}
+          style={[
+            styles.input,
+            {
+              color: theme.text,
+              borderColor: theme.border,
+              backgroundColor: theme.background,
+            },
+          ]}
         />
-        <Input
-          placeholder="Duration (e.g. 45 min)"
+
+        <TextInput
+          placeholder="Duration in minutes (e.g. 60)"
+          placeholderTextColor={theme.subtext}
           value={duration}
           onChangeText={setDuration}
-        />
-        <Input
-          placeholder="Notes"
-          value={notes}
-          onChangeText={setNotes}
-          multiline
-          style={styles.notesInput}
+          keyboardType="numeric"
+          style={[
+            styles.input,
+            {
+              color: theme.text,
+              borderColor: theme.border,
+              backgroundColor: theme.background,
+            },
+          ]}
         />
 
-        <Text style={[styles.label, { color: theme.text }]}>Priority</Text>
-        <View style={styles.priorityRow}>
-          {(['High', 'Medium', 'Low'] as Priority[]).map((item) => (
-            <Pressable key={item} onPress={() => setPriority(item)}>
-              <Badge
-                label={item}
-                color={priorityColor(item)}
-                variant={priority === item ? 'solid' : 'outline'}
-              />
-            </Pressable>
-          ))}
-        </View>
-
-        <View style={styles.formActions}>
-          <Button
-            label={editingId ? 'Update Task' : 'Add Task'}
-            onPress={handleSave}
-            fullWidth
-          />
-          {editingId && (
-            <Button
-              label="Cancel"
-              variant="secondary"
-              onPress={resetForm}
-            />
-          )}
-        </View>
+        <Button
+          label={addingTask ? 'Adding...' : 'Add Task'}
+          onPress={handleAddTask}
+        />
       </Card>
 
-      {/* Task list */}
-      {tasks.map((task) => (
-        <TaskItem
-          key={task.id}
-          task={task}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
+      {loading ? (
+        <View style={styles.centerState}>
+          <ActivityIndicator size="large" />
+          <Text style={[styles.stateText, { color: theme.subtext }]}>
+            Loading tasks...
+          </Text>
+        </View>
+      ) : (
+        <FlatList
+          data={tasks}
+          keyExtractor={(item) => String(item.id)}
+          renderItem={renderTask}
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={
+            tasks.length === 0 ? styles.emptyListContainer : styles.listContainer
+          }
+          ListEmptyComponent={
+            <View style={styles.centerState}>
+              <Text style={[styles.emptyTitle, { color: theme.text }]}>
+                No tasks yet
+              </Text>
+              <Text style={[styles.stateText, { color: theme.subtext }]}>
+                Add a task with a real place name or address.
+              </Text>
+            </View>
+          }
         />
-      ))}
+      )}
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  formTitle: {
-    ...Typography.h3,
-    marginBottom: Spacing.sm + 4,
+  card: {
+    marginBottom: Spacing.md,
   },
-  label: {
-    ...Typography.caption,
-    fontWeight: '700',
+  input: {
+    borderWidth: 1,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.sm,
     marginBottom: Spacing.sm,
   },
-  priorityRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
+  listContainer: {
+    paddingBottom: Spacing.xl,
+  },
+  emptyListContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingBottom: Spacing.xl,
+  },
+  taskCard: {
     marginBottom: Spacing.sm,
-    flexWrap: 'wrap',
   },
-  notesInput: {
-    minHeight: 80,
-    textAlignVertical: 'top',
+  title: {
+    ...Typography.h4,
+    marginBottom: 4,
   },
-  formActions: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-    marginTop: Spacing.xs,
+  meta: {
+    ...Typography.bodySm,
+    marginBottom: 4,
+  },
+  deleteButtonWrap: {
+    marginTop: Spacing.sm,
+  },
+  centerState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 40,
+    paddingHorizontal: Spacing.lg,
+  },
+  stateText: {
+    ...Typography.bodySm,
+    marginTop: Spacing.sm,
+    textAlign: 'center',
+  },
+  emptyTitle: {
+    ...Typography.h4,
+    marginBottom: 6,
   },
 });

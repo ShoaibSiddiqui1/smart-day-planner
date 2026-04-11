@@ -1,41 +1,57 @@
+import React, { useState } from 'react';
 import {
-  View, Text, TextInput, Pressable,
-  StyleSheet, KeyboardAvoidingView, Platform, ScrollView,
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+
 import { AppBackground } from '@/components/layout/AppBackground';
 import { Button } from '@/components/ui/Button';
 import { authApi } from '@/services/api';
 import { Typography, Spacing, BorderRadius } from '@/constants/theme';
 
-const DARK_CARD   = 'rgba(4, 16, 30, 0.82)';
-const DARK_INPUT  = 'rgba(255,255,255,0.07)';
+const DARK_CARD = 'rgba(4, 16, 30, 0.82)';
+const DARK_INPUT = 'rgba(255,255,255,0.07)';
 const DARK_BORDER = 'rgba(20, 184, 166, 0.25)';
-const TEXT        = '#F8FAFC';
-const SUBTEXT     = 'rgba(255,255,255,0.55)';
-const TEAL        = '#14B8A6';
-const BLUE        = '#3B82F6';
+const TEXT = '#F8FAFC';
+const SUBTEXT = 'rgba(255,255,255,0.55)';
+const TEAL = '#14B8A6';
+const BLUE = '#3B82F6';
 
 export default function ForgotPassword() {
   const router = useRouter();
-  const [email, setEmail]     = useState('');
-  const [error, setError]     = useState('');
+
+  const [email, setEmail] = useState('');
+  const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
-    if (!email.trim()) {
+    const trimmedEmail = email.trim();
+
+    if (!trimmedEmail) {
       setError('Please enter your email address.');
       return;
     }
-    setError(''); setMessage(''); setLoading(true);
+
+    setError('');
+    setMessage('');
+    setLoading(true);
+
     try {
-      const res = await authApi.forgotPassword(email.trim());
-      setMessage(res.data.message);
-    } catch {
-      setError('Something went wrong. Please try again.');
+      const res = await authApi.forgotPassword(trimmedEmail);
+      setMessage(res?.message || 'Reset instructions sent.');
+    } catch (e: any) {
+      console.error('FORGOT PASSWORD ERROR:', e);
+      setError(e?.message || 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -62,7 +78,7 @@ export default function ForgotPassword() {
             <View style={styles.card}>
               <Text style={styles.title}>Reset Password</Text>
               <Text style={styles.subtitle}>
-                Enter your email and we'll send a reset code.
+                Enter your email and we&apos;ll send a reset code.
               </Text>
 
               <TextInput
@@ -70,18 +86,19 @@ export default function ForgotPassword() {
                 placeholder="Email address"
                 placeholderTextColor={SUBTEXT}
                 autoCapitalize="none"
+                autoCorrect={false}
                 keyboardType="email-address"
                 value={email}
                 onChangeText={setEmail}
+                editable={!loading}
               />
 
-              {error   ? <Text style={styles.error}>{error}</Text>     : null}
+              {error ? <Text style={styles.error}>{error}</Text> : null}
               {message ? <Text style={styles.success}>{message}</Text> : null}
 
               <Button
-                label="Send Reset Code"
+                label={loading ? 'Sending...' : 'Send Reset Code'}
                 fullWidth
-                loading={loading}
                 onPress={handleSubmit}
                 style={styles.primaryBtn}
               />
@@ -89,11 +106,9 @@ export default function ForgotPassword() {
               {message ? (
                 <Button
                   label="Enter reset code →"
-                  variant="ghost"
                   fullWidth
                   onPress={() => router.push('/reset-password')}
                   style={styles.ghostBtn}
-                  textStyle={{ color: TEAL }}
                 />
               ) : null}
 
@@ -111,7 +126,7 @@ export default function ForgotPassword() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#04101E' },
   safe: { flex: 1 },
-  kav:  { flex: 1 },
+  kav: { flex: 1 },
   scroll: {
     flexGrow: 1,
     justifyContent: 'center',
@@ -126,7 +141,8 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   brandDot: {
-    width: 10, height: 10,
+    width: 10,
+    height: 10,
     borderRadius: BorderRadius.full,
     backgroundColor: TEAL,
   },
@@ -138,8 +154,18 @@ const styles = StyleSheet.create({
     borderColor: DARK_BORDER,
     padding: Spacing.lg,
   },
-  title:    { ...Typography.h1, color: TEXT,    textAlign: 'center', marginBottom: Spacing.xs },
-  subtitle: { ...Typography.body, color: SUBTEXT, textAlign: 'center', marginBottom: Spacing.lg },
+  title: {
+    ...Typography.h1,
+    color: TEXT,
+    textAlign: 'center',
+    marginBottom: Spacing.xs,
+  },
+  subtitle: {
+    ...Typography.body,
+    color: SUBTEXT,
+    textAlign: 'center',
+    marginBottom: Spacing.lg,
+  },
   input: {
     backgroundColor: DARK_INPUT,
     borderWidth: 1,
@@ -151,10 +177,20 @@ const styles = StyleSheet.create({
     fontSize: 15,
     marginBottom: Spacing.sm + 2,
   },
-  error:   { ...Typography.caption, color: '#F87171', textAlign: 'center', marginBottom: Spacing.sm },
-  success: { ...Typography.caption, color: '#4ADE80', textAlign: 'center', marginBottom: Spacing.sm },
+  error: {
+    ...Typography.caption,
+    color: '#F87171',
+    textAlign: 'center',
+    marginBottom: Spacing.sm,
+  },
+  success: {
+    ...Typography.caption,
+    color: '#4ADE80',
+    textAlign: 'center',
+    marginBottom: Spacing.sm,
+  },
   primaryBtn: { backgroundColor: BLUE },
-  ghostBtn:   { marginTop: Spacing.xs },
+  ghostBtn: { marginTop: Spacing.xs },
   backLink: { marginTop: Spacing.md, alignItems: 'center' },
   backText: { ...Typography.body, color: SUBTEXT, fontWeight: '600' },
 });

@@ -16,7 +16,7 @@ async def seed_and_test():
             "home_address": "Empire State Building, NY"
         }
         # Path is "/" because of your main.py setup
-        reg_res = await client.post(f"{BASE_URL}/", json=user_data)
+        reg_res = await client.post(f"{BASE_URL}/users/", json=user_data)
         if reg_res.status_code == 201:
             print("✅ User created.")
         else:
@@ -41,8 +41,6 @@ async def seed_and_test():
                 "title": "Final Test Task",
                 "description": "It works!",
                 "location": "New York, NY",
-                "latitude": 40.7128,
-                "longitude": -74.0060,
                 "priority": 3,
                 "duration_minutes": 45,
                 # USE .isoformat() to provide the full timestamp the database wants
