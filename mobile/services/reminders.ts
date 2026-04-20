@@ -29,12 +29,7 @@ Notifications.setNotificationHandler({
   }),
 });
 
-export async function registerForPushNotificationsAsync(): Promise<boolean> {
-  if (!Device.isDevice) {
-    console.log('Notifications work best on a physical device.');
-    return true;
-  }
-
+export async function registerForNotificationsAsync(): Promise<boolean> {
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;
 

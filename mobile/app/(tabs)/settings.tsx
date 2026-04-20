@@ -12,8 +12,10 @@ import {
 import { useTheme } from '@/hooks/use-theme';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { authApi, type User } from '@/services/api';
+import { useRouter } from 'expo-router';
 
-export default function SettingsScreen() {
+  export default function SettingsScreen() {
   const theme = useTheme();
   const { isDark, toggleTheme } = theme;
 
@@ -23,24 +25,33 @@ export default function SettingsScreen() {
 
   const styles = useMemo(() => createStyles(theme, isDark), [theme, isDark]);
 
-  const user = {
-    name: 'Wayne',
-    email: 'cheng.yue38@myhunter.cuny.edu',
-  };
+  const [user, setUser] = useState<User | null>(null);
+  const [loadingUser, setLoadingUser] = useState(true);
 
   useEffect(() => {
-    const loadProfileImage = async () => {
+    const loadSettingsData = async () => {
       try {
-        const savedImage = await AsyncStorage.getItem('profile_image');
+        const [savedImage, me] = await Promise.all([
+          AsyncStorage.getItem('profile_image'),
+          authApi.getMe(),
+        ]);
+
         if (savedImage) {
           setProfileImage(savedImage);
+        } else if (me?.profile_picture) {
+          setProfileImage(me.profile_picture);
         }
+
+        setUser(me);
       } catch (error) {
-        console.error('Failed to load profile image:', error);
+        console.error('Failed to load settings data:', error);
+        Alert.alert('Error', 'Failed to load your account information.');
+      } finally {
+        setLoadingUser(false);
       }
     };
 
-    loadProfileImage();
+    loadSettingsData();
   }, []);
 
   const handleChangeProfilePicture = async () => {
@@ -78,10 +89,24 @@ export default function SettingsScreen() {
     }
   };
 
-  const handleLogout = () => {
-    Alert.alert('Logout', 'Hook up your logout logic here.');
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await AsyncStorage.removeItem('token');
+    router.replace('/login');
   };
 
+  const displayName = user?.username?.trim() || 'User';
+  const displayEmail = user?.email?.trim() || 'No email available';
+  const avatarLetter = displayName.charAt(0).toUpperCase();
+
+  if (loadingUser) {
+  return (
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <Text>Loading...</Text>
+    </View>
+  );
+}
   return (
     <ScrollView
       style={styles.container}
@@ -96,23 +121,21 @@ export default function SettingsScreen() {
         activeOpacity={0.85}
         onPress={handleChangeProfilePicture}
       >
-        {profileImage ? (
-          <Image source={{ uri: profileImage }} style={styles.avatarImage} />
-        ) : (
-          <View style={styles.avatarPlaceholder}>
-            <Text style={styles.avatarText}>
-              {user.name.charAt(0).toUpperCase()}
-            </Text>
-          </View>
-        )}
-
-        <View style={styles.profileInfo}>
-          <Text style={styles.profileName}>{user.name}</Text>
-          <Text style={styles.profileEmail}>{user.email}</Text>
-          <Text style={styles.profileHint}>
-            Tap your avatar to change profile picture
-          </Text>
+      {profileImage ? (
+        <Image source={{ uri: profileImage }} style={styles.avatarImage} />
+      ) : (
+        <View style={styles.avatarPlaceholder}>
+          <Text style={styles.avatarText}>{avatarLetter}</Text>
         </View>
+      )}
+
+      <View style={styles.profileInfo}>
+        <Text style={styles.profileName}>{displayName}</Text>
+        <Text style={styles.profileEmail}>{displayEmail}</Text>
+        <Text style={styles.profileHint}>
+          Tap your avatar to change profile picture
+        </Text>
+      </View>
       </TouchableOpacity>
 
       <View style={styles.card}>
