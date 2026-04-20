@@ -16,11 +16,11 @@ import { Button } from '@/components/ui/Button';
 import { useTheme } from '@/hooks/use-theme';
 import { Typography, Spacing, BorderRadius } from '@/constants/theme';
 import { scheduleApi, taskApi } from '@/services/api';
-/* import {
-  registerForPushNotificationsAsync,
+import {
+  registerForNotificationsAsync,
   clearScheduledReminders,
   scheduleTaskReminders,
-} from '@/services/reminders'; */
+} from '@/services/reminders';
 
 type Task = {
   id?: number;
@@ -50,44 +50,37 @@ export default function ScheduleScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const loadSchedule = useCallback(async (showLoader = true) => {
-    try {
-      if (showLoader) setLoading(true);
+const loadSchedule = useCallback(async (showLoader = true) => {
+  try {
+    if (showLoader) setLoading(true);
 
-      console.log('Fetching tasks...');
-      const tasks = await taskApi.getAll();
-      console.log('TASKS:', tasks);
+    const data = await scheduleApi.getLatest();
 
-      if (!Array.isArray(tasks) || tasks.length === 0) {
-        console.log('No tasks → skip schedule');
-        setSchedule(null);
-        return;
-      }
-
-      console.log('Generating schedule...');
-      await scheduleApi.generate();
-
-      console.log('Fetching latest schedule...');
-      const data = await scheduleApi.getLatest();
-
-      console.log('SCHEDULE DATA:', data);
-      console.log('SCHEDULE ITEMS:', data?.items);
-
-      if (!data || !Array.isArray(data.items)) {
-        setSchedule(null);
-        return;
-      }
-
+    if (data && Array.isArray(data.items) && data.items.length > 0) {
       setSchedule(data);
-    } catch (err) {
-      console.error('Schedule error:', err);
-      setSchedule(null);
-      Alert.alert('Schedule error', 'Could not load the optimized schedule.');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+      return;
     }
-  }, []);
+
+    // only generate if no schedule exists
+    const tasks = await taskApi.getAll();
+    if (!Array.isArray(tasks) || tasks.length === 0) {
+      setSchedule(null);
+      return;
+    }
+
+    await scheduleApi.generate();
+    const newData = await scheduleApi.getLatest();
+
+    setSchedule(newData ?? null);
+  } catch (err) {
+    console.error('Schedule error:', err);
+    setSchedule(null);
+    Alert.alert('Schedule error', 'Could not load the optimized schedule.');
+  } finally {
+    setLoading(false);
+    setRefreshing(false);
+  }
+}, []);
 
   useEffect(() => {
     loadSchedule(true);
@@ -98,46 +91,29 @@ export default function ScheduleScreen() {
     await loadSchedule(false);
   };
 
-/* const handleReminderPress = async () => {
-  try {
-    if (!schedule?.items?.length) {
-      Alert.alert('No schedule', 'There are no scheduled tasks to remind you about.');
-      return;
+  const handleReminderPress = async () => {
+    try {
+      if (!schedule?.items?.length) {
+        Alert.alert('No schedule', 'There are no scheduled tasks to remind you about.');
+        return;
+      }
+
+      await registerForNotificationsAsync();
+      await clearScheduledReminders();
+
+      const count = await scheduleTaskReminders(schedule, 10);
+
+      if (count === 0) {
+        Alert.alert('No reminders', 'All reminder times are already in the past.');
+        return;
+      }
+
+      Alert.alert('Success', `${count} reminder(s) scheduled.`);
+    } catch (err) {
+      console.error('Reminder error:', err);
+      Alert.alert('Error', 'Failed to schedule reminders.');
     }
-
-    await registerForPushNotificationsAsync();
-
-    await clearScheduledReminders();
-
-    const count = await scheduleTaskReminders(schedule, 10);
-
-    if (count === 0) {
-      Alert.alert(
-        'No reminders scheduled',
-        'All reminder times are already in the past.'
-      );
-      return;
-    }
-
-    Alert.alert('Success', `${count} reminder(s) scheduled.`);
-  } catch (err) {
-    console.error('Reminder error:', err);
-    Alert.alert('Error', 'Failed to schedule reminders.');
-  }
-}; */
-
-const handleReminderPress = () => {
-  if (!schedule?.items?.length) {
-    Alert.alert('No schedule', 'There are no scheduled tasks to remind you about.');
-    return;
-  }
-
-  Alert.alert(
-    'Reminder feature',
-    'This feature needs a development build on Android. Expo Go cannot run it.'
-  );
-};
-
+  };
   const formatTime = (dateString?: string) => {
     if (!dateString) return 'No time';
 
@@ -145,9 +121,10 @@ const handleReminderPress = () => {
 
     if (Number.isNaN(date.getTime())) return 'Invalid time';
 
-    return date.toLocaleTimeString([], {
+   return new Date(dateString).toLocaleTimeString(undefined, {
       hour: '2-digit',
       minute: '2-digit',
+
     });
   };
 
@@ -207,7 +184,7 @@ const handleReminderPress = () => {
           </Card>
         ) : (
           scheduleItems.map((item, index) => (
-            <View key={item.id ?? index} style={styles.timelineRow}>
+            <View key={item.id ? String(item.id) : `item-${index}`} style={styles.timelineRow}>
               <View style={styles.leftCol}>
                 <Text style={[styles.time, { color: theme.tint }]}>
                   {formatTime(item.scheduled_start)}
