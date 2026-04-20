@@ -137,3 +137,14 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+venv/
+__pycache__/
+*.pyc
+.env
+
+# hide the token
+.env
+venv/
+__pycache__/
+*.pyc
