@@ -1,4 +1,4 @@
-import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 
@@ -20,17 +20,40 @@ type Schedule = {
   items?: ScheduleItem[];
 };
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
+const isExpoGo = Constants.appOwnership === 'expo';
+
+async function getNotificationsModule() {
+  if (isExpoGo) {
+    return null;
+  }
+
+  return await import('expo-notifications');
+}
 
 export async function registerForNotificationsAsync(): Promise<boolean> {
-  const { status: existingStatus } = await Notifications.getPermissionsAsync();
+  const Notifications = await getNotificationsModule();
+
+  if (!Notifications) {
+    console.log('Expo Go detected: skipping notification registration.');
+    return false;
+  }
+
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }),
+  });
+
+  if (!Device.isDevice) {
+    console.log('Notifications require a physical device.');
+    return false;
+  }
+
+  const { status: existingStatus } =
+    await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;
 
   if (existingStatus !== 'granted') {
@@ -39,7 +62,8 @@ export async function registerForNotificationsAsync(): Promise<boolean> {
   }
 
   if (finalStatus !== 'granted') {
-    throw new Error('Notification permission was not granted.');
+    console.log('Notification permission was not granted.');
+    return false;
   }
 
   if (Platform.OS === 'android') {
@@ -55,6 +79,13 @@ export async function registerForNotificationsAsync(): Promise<boolean> {
 }
 
 export async function clearScheduledReminders() {
+  const Notifications = await getNotificationsModule();
+
+  if (!Notifications) {
+    console.log('Expo Go detected: skipping clear reminders.');
+    return;
+  }
+
   await Notifications.cancelAllScheduledNotificationsAsync();
 }
 
@@ -62,6 +93,13 @@ export async function scheduleTaskReminders(
   schedule: Schedule,
   minutesBefore: number = 10
 ) {
+  const Notifications = await getNotificationsModule();
+
+  if (!Notifications) {
+    console.log('Expo Go detected: skipping task reminders.');
+    return 0;
+  }
+
   const items = schedule.items ?? [];
   let count = 0;
 
@@ -78,7 +116,10 @@ export async function scheduleTaskReminders(
     }
 
     const title = item.task.title || 'Upcoming task';
-    const locationText = item.task.location ? `\nLocation: ${item.task.location}` : '';
+    const locationText = item.task.location
+      ? `\nLocation: ${item.task.location}`
+      : '';
+
     const body = `Starts at ${startDate.toLocaleTimeString([], {
       hour: 'numeric',
       minute: '2-digit',

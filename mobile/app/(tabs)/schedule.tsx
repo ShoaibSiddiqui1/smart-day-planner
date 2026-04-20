@@ -34,6 +34,7 @@ type ScheduleItem = {
   id?: number;
   scheduled_start?: string;
   scheduled_end?: string;
+  travel_time_minutes?: number;
   task?: Task;
 };
 
@@ -183,45 +184,62 @@ const loadSchedule = useCallback(async (showLoader = true) => {
             </Text>
           </Card>
         ) : (
-          scheduleItems.map((item, index) => (
-            <View key={item.id ? String(item.id) : `item-${index}`} style={styles.timelineRow}>
-              <View style={styles.leftCol}>
-                <Text style={[styles.time, { color: theme.tint }]}>
-                  {formatTime(item.scheduled_start)}
-                </Text>
+      scheduleItems.map((item, index) => (
+        <View key={item.id ? String(item.id) : `item-${index}`}>
+          
+          {/*  Travel time BEFORE this task */}
+          {index > 0 && item.travel_time_minutes != null && item.travel_time_minutes > 0 && (
+            <Text
+              style={{
+                textAlign: 'center',
+                marginVertical: 6,
+                opacity: 0.6,
+                fontSize: 12,
+              }}
+            >
+              ⬇ {Math.ceil(item.travel_time_minutes)} min travel
+            </Text>
+          )}
 
-                <View style={[styles.dot, { backgroundColor: theme.tint }]} />
+          <View style={styles.timelineRow}>
+            <View style={styles.leftCol}>
+              <Text style={[styles.time, { color: theme.tint }]}>
+                {formatTime(item.scheduled_start)}
+              </Text>
 
-                {index < scheduleItems.length - 1 && (
-                  <View style={[styles.line, { backgroundColor: theme.border }]} />
-                )}
-              </View>
+              <View style={[styles.dot, { backgroundColor: theme.tint }]} />
 
-              <Card
-                style={[
-                  styles.eventCard,
-                  { backgroundColor: theme.card, borderColor: theme.border },
-                ]}
-              >
-                <Text style={[styles.eventTitle, { color: theme.text }]}>
-                  {item.task?.title || 'No title'}
-                </Text>
-
-                <Text style={[styles.eventMeta, { color: theme.subtext }]}>
-                  📍 {item.task?.location || 'No location'}
-                </Text>
-
-                <Text style={[styles.eventMeta, { color: theme.subtext }]}>
-                  ⏱ {item.task?.duration_minutes ?? 0} min
-                </Text>
-
-                <Text style={[styles.eventMeta, { color: theme.subtext }]}>
-                  Priority: {item.task?.priority ?? 0}
-                </Text>
-              </Card>
+              {index < scheduleItems.length - 1 && (
+                <View style={[styles.line, { backgroundColor: theme.border }]} />
+              )}
             </View>
-          ))
-        )}
+
+            <Card
+              style={[
+                styles.eventCard,
+                { backgroundColor: theme.card, borderColor: theme.border },
+              ]}
+            >
+              <Text style={[styles.eventTitle, { color: theme.text }]}>
+                {item.task?.title || 'No title'}
+              </Text>
+
+              <Text style={[styles.eventMeta, { color: theme.subtext }]}>
+                📍 {item.task?.location || 'No location'}
+              </Text>
+
+              <Text style={[styles.eventMeta, { color: theme.subtext }]}>
+                ⏱ {item.task?.duration_minutes ?? 0} min
+              </Text>
+
+              <Text style={[styles.eventMeta, { color: theme.subtext }]}>
+                Priority: {item.task?.priority ?? 0}
+              </Text>
+            </Card>
+          </View>
+        </View>
+      ))
+              )}
 
         <Button
           label="Send reminder notifications"
