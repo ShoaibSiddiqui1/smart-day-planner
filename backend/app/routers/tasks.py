@@ -190,9 +190,13 @@ async def update_task(
     update_data = task_update.model_dump(exclude_unset=True)
 
     if "location" in update_data and update_data["location"]:
-        lat, lon = await geocode_location(update_data["location"])
-        update_data["latitude"] = lat
-        update_data["longitude"] = lon
+        geo = await geocode_location(update_data["location"])
+
+        if not geo:
+            raise HTTPException(status_code=400, detail="Invalid location")
+
+        update_data["latitude"] = geo["latitude"]
+        update_data["longitude"] = geo["longitude"]
 
     for key, value in update_data.items():
         setattr(db_task, key, value)

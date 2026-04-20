@@ -31,6 +31,7 @@ type Task = {
   latest_end?: string;
   latitude?: number | null;
   longitude?: number | null;
+  status?: string;
 };
 
 export default function TasksScreen() {
@@ -161,6 +162,28 @@ export default function TasksScreen() {
     ]);
   };
 
+  const handleCompleteTask = async (id: number) => {
+  try {
+    console.log('Completing task:', id);
+
+    await taskApi.update(id, { status: 'completed' });
+
+    // remove from UI immediately
+    setTasks((prev) => prev.filter((task) => task.id !== id));
+
+    // regenerate schedule
+    try {
+      await scheduleApi.generate();
+    } catch (err) {
+      console.error('Schedule regenerate error:', err);
+    }
+
+  } catch (err) {
+    console.error('Complete task error:', err);
+    Alert.alert('Error', 'Could not complete task.');
+  }
+};
+
   const handleRefresh = async () => {
     setRefreshing(true);
     await loadTasks();
@@ -206,7 +229,12 @@ export default function TasksScreen() {
           {hasCoordinates ? '✅ Location recognized' : '⚠️ Location not recognized well'}
         </Text>
 
-        <View style={styles.deleteButtonWrap}>
+        <View style={{ flexDirection: 'row', gap: 10, marginTop: Spacing.sm }}>
+          <Button
+            label="Complete"
+            onPress={() => handleCompleteTask(item.id)}
+          />
+
           <Button
             label="Delete"
             variant="secondary"
