@@ -16,6 +16,11 @@ import { Button } from '@/components/ui/Button';
 import { useTheme } from '@/hooks/use-theme';
 import { Typography, Spacing, BorderRadius } from '@/constants/theme';
 import { scheduleApi, taskApi } from '@/services/api';
+/* import {
+  registerForPushNotificationsAsync,
+  clearScheduledReminders,
+  scheduleTaskReminders,
+} from '@/services/reminders'; */
 
 type Task = {
   id?: number;
@@ -93,17 +98,45 @@ export default function ScheduleScreen() {
     await loadSchedule(false);
   };
 
-  const handleReminderPress = () => {
+/* const handleReminderPress = async () => {
+  try {
     if (!schedule?.items?.length) {
       Alert.alert('No schedule', 'There are no scheduled tasks to remind you about.');
       return;
     }
 
-    Alert.alert(
-      'Reminders',
-      'Reminder notifications will be connected later. Your schedule is ready.'
-    );
-  };
+    await registerForPushNotificationsAsync();
+
+    await clearScheduledReminders();
+
+    const count = await scheduleTaskReminders(schedule, 10);
+
+    if (count === 0) {
+      Alert.alert(
+        'No reminders scheduled',
+        'All reminder times are already in the past.'
+      );
+      return;
+    }
+
+    Alert.alert('Success', `${count} reminder(s) scheduled.`);
+  } catch (err) {
+    console.error('Reminder error:', err);
+    Alert.alert('Error', 'Failed to schedule reminders.');
+  }
+}; */
+
+const handleReminderPress = () => {
+  if (!schedule?.items?.length) {
+    Alert.alert('No schedule', 'There are no scheduled tasks to remind you about.');
+    return;
+  }
+
+  Alert.alert(
+    'Reminder feature',
+    'This feature needs a development build on Android. Expo Go cannot run it.'
+  );
+};
 
   const formatTime = (dateString?: string) => {
     if (!dateString) return 'No time';

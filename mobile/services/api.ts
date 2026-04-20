@@ -1,8 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-//const BASE_URL = 'http://172.22.232.172:8000'; // for wsl
+const BASE_URL = 'http://172.22.232.172:8001'; // for wsl
 
-const BASE_URL = 'http://192.168.1.175:8000'; // for expo go testing
+// const BASE_URL = 'http://192.168.1.175:8000'; // for expo go testing
 
 type RequestOptions = RequestInit & {
   headers?: Record<string, string>;

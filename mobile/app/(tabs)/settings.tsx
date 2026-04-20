@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,8 @@ import {
   Image,
 } from 'react-native';
 import { useTheme } from '@/hooks/use-theme';
+import * as ImagePicker from 'expo-image-picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function SettingsScreen() {
   const theme = useTheme();
@@ -17,17 +19,63 @@ export default function SettingsScreen() {
 
   const [taskReminders, setTaskReminders] = useState(true);
   const [routeUpdates, setRouteUpdates] = useState(true);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
 
   const styles = useMemo(() => createStyles(theme, isDark), [theme, isDark]);
 
   const user = {
     name: 'Wayne',
     email: 'cheng.yue38@myhunter.cuny.edu',
-    profilePicture: '',
   };
 
-  const handleChangeProfilePicture = () => {
-    Alert.alert('Change profile picture', 'Connect your image picker here.');
+  useEffect(() => {
+    const loadProfileImage = async () => {
+      try {
+        const savedImage = await AsyncStorage.getItem('profile_image');
+        if (savedImage) {
+          setProfileImage(savedImage);
+        }
+      } catch (error) {
+        console.error('Failed to load profile image:', error);
+      }
+    };
+
+    loadProfileImage();
+  }, []);
+
+  const handleChangeProfilePicture = async () => {
+    try {
+      const permissionResult =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (!permissionResult.granted) {
+        Alert.alert(
+          'Permission required',
+          'Please allow access to your photo library to choose a profile picture.'
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+      });
+
+      if (result.canceled || !result.assets || result.assets.length === 0) {
+        return;
+      }
+
+      const imageUri = result.assets[0].uri;
+      setProfileImage(imageUri);
+      await AsyncStorage.setItem('profile_image', imageUri);
+
+      Alert.alert('Success', 'Profile picture updated.');
+    } catch (error) {
+      console.error('Image picker error:', error);
+      Alert.alert('Error', 'Failed to pick image.');
+    }
   };
 
   const handleLogout = () => {
@@ -43,19 +91,27 @@ export default function SettingsScreen() {
       <Text style={styles.title}>Settings</Text>
       <Text style={styles.subtitle}>Manage your account</Text>
 
-      <TouchableOpacity style={styles.profileCard} activeOpacity={0.85}>
-        {user.profilePicture ? (
-          <Image source={{ uri: user.profilePicture }} style={styles.avatarImage} />
+      <TouchableOpacity
+        style={styles.profileCard}
+        activeOpacity={0.85}
+        onPress={handleChangeProfilePicture}
+      >
+        {profileImage ? (
+          <Image source={{ uri: profileImage }} style={styles.avatarImage} />
         ) : (
           <View style={styles.avatarPlaceholder}>
-            <Text style={styles.avatarText}>{user.name.charAt(0).toUpperCase()}</Text>
+            <Text style={styles.avatarText}>
+              {user.name.charAt(0).toUpperCase()}
+            </Text>
           </View>
         )}
 
         <View style={styles.profileInfo}>
           <Text style={styles.profileName}>{user.name}</Text>
           <Text style={styles.profileEmail}>{user.email}</Text>
-          <Text style={styles.profileHint}>Tap your avatar to change profile picture</Text>
+          <Text style={styles.profileHint}>
+            Tap your avatar to change profile picture
+          </Text>
         </View>
       </TouchableOpacity>
 
@@ -65,7 +121,9 @@ export default function SettingsScreen() {
         <View style={styles.row}>
           <View style={styles.rowText}>
             <Text style={styles.rowTitle}>Dark mode</Text>
-            <Text style={styles.rowSubtitle}>Switch between light and dark theme</Text>
+            <Text style={styles.rowSubtitle}>
+              Switch between light and dark theme
+            </Text>
           </View>
 
           <Switch
@@ -86,7 +144,9 @@ export default function SettingsScreen() {
         <View style={styles.row}>
           <View style={styles.rowText}>
             <Text style={styles.rowTitle}>Task reminders</Text>
-            <Text style={styles.rowSubtitle}>Reminder alerts for scheduled tasks</Text>
+            <Text style={styles.rowSubtitle}>
+              Reminder alerts for scheduled tasks
+            </Text>
           </View>
 
           <Switch
@@ -105,7 +165,9 @@ export default function SettingsScreen() {
         <View style={styles.row}>
           <View style={styles.rowText}>
             <Text style={styles.rowTitle}>Route updates</Text>
-            <Text style={styles.rowSubtitle}>Alerts when your route or schedule changes</Text>
+            <Text style={styles.rowSubtitle}>
+              Alerts when your route or schedule changes
+            </Text>
           </View>
 
           <Switch
@@ -123,7 +185,10 @@ export default function SettingsScreen() {
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Account</Text>
 
-        <TouchableOpacity style={styles.secondaryButton} onPress={handleChangeProfilePicture}>
+        <TouchableOpacity
+          style={styles.secondaryButton}
+          onPress={handleChangeProfilePicture}
+        >
           <Text style={styles.secondaryButtonText}>Change profile picture</Text>
         </TouchableOpacity>
 
