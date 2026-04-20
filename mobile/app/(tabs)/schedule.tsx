@@ -27,6 +27,7 @@ type Task = {
   title?: string;
   location?: string;
   duration_minutes?: number;
+  status?: string;
   priority?: number;
 };
 
@@ -51,45 +52,53 @@ export default function ScheduleScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-const loadSchedule = useCallback(async (showLoader = true) => {
-  try {
-    if (showLoader) setLoading(true);
+  const loadSchedule = useCallback(async (showLoader = true) => {
+    try {
+      if (showLoader) setLoading(true);
 
-    const data = await scheduleApi.getLatest();
+      const data = await scheduleApi.getLatest();
 
-    if (data && Array.isArray(data.items) && data.items.length > 0) {
-      setSchedule(data);
-      return;
-    }
+      if (data && Array.isArray(data.items) && data.items.length > 0) {
+        setSchedule(data);
+        return;
+      }
 
-    // only generate if no schedule exists
-    const tasks = await taskApi.getAll();
-    if (!Array.isArray(tasks) || tasks.length === 0) {
+      const tasks = await taskApi.getAll();
+      if (!Array.isArray(tasks) || tasks.length === 0) {
+        setSchedule(null);
+        return;
+      }
+
+      await scheduleApi.generate();
+      const newData = await scheduleApi.getLatest();
+      console.log('LATEST SCHEDULE DATA:', JSON.stringify(newData, null, 2));
+
+      setSchedule(newData ?? null);
+    } catch (err) {
+      console.error('Schedule error:', err);
       setSchedule(null);
-      return;
+      Alert.alert('Schedule error', 'Could not load the optimized schedule.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
-
-    await scheduleApi.generate();
-    const newData = await scheduleApi.getLatest();
-
-    setSchedule(newData ?? null);
-  } catch (err) {
-    console.error('Schedule error:', err);
-    setSchedule(null);
-    Alert.alert('Schedule error', 'Could not load the optimized schedule.');
-  } finally {
-    setLoading(false);
-    setRefreshing(false);
-  }
-}, []);
+  }, []);
 
   useEffect(() => {
     loadSchedule(true);
   }, [loadSchedule]);
 
   const handleRefresh = async () => {
-    setRefreshing(true);
-    await loadSchedule(false);
+    try {
+      setRefreshing(true);
+      await scheduleApi.generate();
+      await loadSchedule(false);
+    } catch (err) {
+      console.error('Refresh error:', err);
+      Alert.alert('Refresh error', 'Could not regenerate the optimized schedule.');
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const handleReminderPress = async () => {
@@ -115,6 +124,17 @@ const loadSchedule = useCallback(async (showLoader = true) => {
       Alert.alert('Error', 'Failed to schedule reminders.');
     }
   };
+
+  const handleCompleteTask = async (taskId: number) => {
+    try {
+      await taskApi.update(taskId, { status: 'completed' });
+      await loadSchedule(false);
+    } catch (err) {
+      console.error('Failed to complete task:', err);
+      Alert.alert('Error', 'Failed to mark task as completed.');
+    }
+  };
+
   const formatTime = (dateString?: string) => {
     if (!dateString) return 'No time';
 
@@ -122,14 +142,21 @@ const loadSchedule = useCallback(async (showLoader = true) => {
 
     if (Number.isNaN(date.getTime())) return 'Invalid time';
 
-   return new Date(dateString).toLocaleTimeString(undefined, {
+    return date.toLocaleTimeString(undefined, {
       hour: '2-digit',
       minute: '2-digit',
-
     });
   };
 
   const scheduleItems = schedule?.items ?? [];
+
+  const completedCount = scheduleItems.filter(
+    (item) => item.task?.status === 'completed'
+  ).length;
+
+  const totalCount = scheduleItems.length;
+
+  const progressPercent = totalCount === 0 ? 0 : completedCount / totalCount;
 
   return (
     <ScreenContainer>
@@ -151,13 +178,28 @@ const loadSchedule = useCallback(async (showLoader = true) => {
             {loading
               ? 'Loading...'
               : schedule?.total_duration_minutes != null
-              ? `${schedule.total_duration_minutes} min total`
-              : 'No schedule'}
+                ? `${schedule.total_duration_minutes} min total`
+                : 'No schedule'}
           </Text>
 
           <Text style={styles.summaryText}>
             Your route is reordered to reduce travel time and improve productivity.
           </Text>
+
+          <Text style={styles.progressText}>
+            {totalCount === 0
+              ? 'No tasks yet'
+              : `${completedCount} / ${totalCount} tasks completed`}
+          </Text>
+
+          <View style={styles.progressBarBackground}>
+            <View
+              style={[
+                styles.progressBarFill,
+                { width: `${progressPercent * 100}%` },
+              ]}
+            />
+          </View>
 
           <Button
             label={refreshing ? 'Refreshing...' : 'Refresh schedule'}
@@ -184,62 +226,76 @@ const loadSchedule = useCallback(async (showLoader = true) => {
             </Text>
           </Card>
         ) : (
-      scheduleItems.map((item, index) => (
-        <View key={item.id ? String(item.id) : `item-${index}`}>
-          
-          {/*  Travel time BEFORE this task */}
-          {index > 0 && item.travel_time_minutes != null && item.travel_time_minutes > 0 && (
-            <Text
-              style={{
-                textAlign: 'center',
-                marginVertical: 6,
-                opacity: 0.6,
-                fontSize: 12,
-              }}
-            >
-              ⬇ {Math.ceil(item.travel_time_minutes)} min travel
-            </Text>
-          )}
+          scheduleItems.map((item, index) => (
+            <View key={item.id ? String(item.id) : `item-${index}`}>
+              {index > 0 &&
+                item.travel_time_minutes != null &&
+                item.travel_time_minutes > 0 && (
+                  <Text
+                    style={{
+                      textAlign: 'center',
+                      marginVertical: 6,
+                      opacity: 0.6,
+                      fontSize: 12,
+                    }}
+                  >
+                    ⬇ {Math.ceil(item.travel_time_minutes)} min travel
+                  </Text>
+                )}
 
-          <View style={styles.timelineRow}>
-            <View style={styles.leftCol}>
-              <Text style={[styles.time, { color: theme.tint }]}>
-                {formatTime(item.scheduled_start)}
-              </Text>
+              <View style={styles.timelineRow}>
+                <View style={styles.leftCol}>
+                  <Text style={[styles.time, { color: theme.tint }]}>
+                    {formatTime(item.scheduled_start)}
+                  </Text>
 
-              <View style={[styles.dot, { backgroundColor: theme.tint }]} />
+                  <View style={[styles.dot, { backgroundColor: theme.tint }]} />
 
-              {index < scheduleItems.length - 1 && (
-                <View style={[styles.line, { backgroundColor: theme.border }]} />
-              )}
+                  {index < scheduleItems.length - 1 && (
+                    <View style={[styles.line, { backgroundColor: theme.border }]} />
+                  )}
+                </View>
+
+                <Card
+                  style={[
+                    styles.eventCard,
+                    { backgroundColor: theme.card, borderColor: theme.border },
+                  ]}
+                >
+                  <Text style={[styles.eventTitle, { color: theme.text }]}>
+                    {item.task?.title || 'No title'}
+                  </Text>
+
+                  <Text style={[styles.eventMeta, { color: theme.subtext }]}>
+                    📍 {item.task?.location || 'No location'}
+                  </Text>
+
+                  <Text style={[styles.eventMeta, { color: theme.subtext }]}>
+                    ⏱ {item.task?.duration_minutes ?? 0} min
+                  </Text>
+
+                  <Text style={[styles.eventMeta, { color: theme.subtext }]}>
+                    Priority: {item.task?.priority ?? 0}
+                  </Text>
+
+                  {item.task?.status === 'completed' && (
+                    <Text style={[styles.eventMeta, { color: theme.subtext }]}>
+                      ✅ Completed
+                    </Text>
+                  )}
+
+                  {item.task?.id && item.task?.status !== 'completed' && (
+                    <Button
+                      label="Complete"
+                      onPress={() => handleCompleteTask(item.task!.id!)}
+                      style={{ marginTop: 8 }}
+                    />
+                  )}
+                </Card>
+              </View>
             </View>
-
-            <Card
-              style={[
-                styles.eventCard,
-                { backgroundColor: theme.card, borderColor: theme.border },
-              ]}
-            >
-              <Text style={[styles.eventTitle, { color: theme.text }]}>
-                {item.task?.title || 'No title'}
-              </Text>
-
-              <Text style={[styles.eventMeta, { color: theme.subtext }]}>
-                📍 {item.task?.location || 'No location'}
-              </Text>
-
-              <Text style={[styles.eventMeta, { color: theme.subtext }]}>
-                ⏱ {item.task?.duration_minutes ?? 0} min
-              </Text>
-
-              <Text style={[styles.eventMeta, { color: theme.subtext }]}>
-                Priority: {item.task?.priority ?? 0}
-              </Text>
-            </Card>
-          </View>
-        </View>
-      ))
-              )}
+          ))
+        )}
 
         <Button
           label="Send reminder notifications"
@@ -269,7 +325,25 @@ const styles = StyleSheet.create({
   summaryText: {
     ...Typography.body,
     color: 'rgba(255,255,255,0.85)',
+    marginBottom: Spacing.xs,
+  },
+  progressText: {
+    ...Typography.bodySm,
+    color: 'rgba(255,255,255,0.9)',
+    marginBottom: Spacing.sm,
+  },
+  progressBarBackground: {
+    width: '100%',
+    height: 8,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    borderRadius: BorderRadius.full,
+    overflow: 'hidden',
     marginBottom: Spacing.md,
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: 'white',
+    borderRadius: BorderRadius.full,
   },
   refreshBtn: {
     borderRadius: BorderRadius.lg,
