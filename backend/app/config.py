@@ -20,6 +20,13 @@ class Settings(BaseSettings):
     # External APIs
     mapbox_access_token: str
 
+    # Email (SMTP) — for password reset emails
+    smtp_host: str = "smtp.gmail.com"
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    email_from: str = ""
+
     # Tell Pydantic to load from .env
     model_config = SettingsConfigDict(
         env_file=".env",

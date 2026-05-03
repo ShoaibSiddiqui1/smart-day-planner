@@ -63,6 +63,19 @@ def get_user_id_from_token(token: str):
             detail="Could not validate credentials"
         )
     
+def verify_access_token(token: str) -> dict:
+    """
+    Decodes and returns the full JWT payload. Raises HTTPException on invalid/expired tokens.
+    """
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token"
+        )
+
 def get_current_user(db: Session = Depends(database.get_db), token: str = Depends(oauth2_scheme)):
     """
     Dependency to get the current user based on the JWT token.
