@@ -102,7 +102,7 @@ export default function Login() {
               />
 
               <Pressable
-                onPress={() => Alert.alert('Coming soon', 'Forgot password is not set up yet.')}
+                onPress={() => router.push('/forgot-password')}
                 style={styles.forgotWrap}
                 disabled={loading}
               >

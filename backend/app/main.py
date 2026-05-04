@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
 from .routers import users, tasks, schedules, auth as auth_router
-from . import models, auth, database
+from . import models, auth as auth_utils, database
 
 app = FastAPI(title="Smart Day Planner API")
 
@@ -44,10 +44,10 @@ def login(
         models.User.email == form_data.username
     ).first()
 
-    if not user or not auth.verify_password(form_data.password, user.hashed_password):
+    if not user or not auth_utils.verify_password(form_data.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
-    access_token = auth.create_access_token(data={"user_id": user.id})
+    access_token = auth_utils.create_access_token(data={"user_id": user.id})
 
     return {
         "access_token": access_token,

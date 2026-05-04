@@ -5,7 +5,9 @@ import {
   StyleSheet,
   FlatList,
   TextInput,
+  TouchableOpacity,
   Alert,
+  Platform,
   Keyboard,
   ActivityIndicator,
 } from 'react-native';
@@ -41,6 +43,10 @@ export default function TasksScreen() {
   const [title, setTitle] = useState('');
   const [location, setLocation] = useState('');
   const [duration, setDuration] = useState('30');
+  const [priority, setPriority] = useState(3);
+  const [showTimeWindow, setShowTimeWindow] = useState(false);
+  const [earliestStart, setEarliestStart] = useState('');
+  const [latestEnd, setLatestEnd] = useState('');
 
   const [loading, setLoading] = useState(true);
   const [addingTask, setAddingTask] = useState(false);
@@ -98,11 +104,20 @@ export default function TasksScreen() {
       setAddingTask(true);
       console.log('Creating task...');
 
+      // Parse optional time window fields (HH:MM → today's ISO datetime)
+      const toISODateTime = (timeStr: string): string | undefined => {
+        if (!timeStr.trim()) return undefined;
+        const today = new Date().toISOString().split('T')[0];
+        return `${today}T${timeStr.trim()}:00`;
+      };
+
       await taskApi.create({
         title: trimmedTitle,
         location: trimmedLocation,
         duration_minutes: parsedDuration,
-        priority: 1,
+        priority,
+        earliest_start: toISODateTime(earliestStart),
+        latest_end: toISODateTime(latestEnd),
       });
 
       console.log('Task created successfully');
@@ -118,6 +133,10 @@ export default function TasksScreen() {
       setTitle('');
       setLocation('');
       setDuration('30');
+      setPriority(3);
+      setEarliestStart('');
+      setLatestEnd('');
+      setShowTimeWindow(false);
       Keyboard.dismiss();
 
       await loadTasks();
@@ -133,33 +152,37 @@ export default function TasksScreen() {
   };
 
   const handleDeleteTask = async (id: number) => {
-    Alert.alert('Delete Task', 'Are you sure you want to delete this task?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            console.log('Deleting task:', id);
-            await taskApi.delete(id);
+    const doDelete = async () => {
+      try {
+        console.log('Deleting task:', id);
+        await taskApi.delete(id);
+        setTasks((prev) => prev.filter((task) => task.id !== id));
+        try {
+          await scheduleApi.generate();
+        } catch (scheduleErr) {
+          console.error('Schedule regenerate error:', scheduleErr);
+        }
+        await loadTasks();
+      } catch (err) {
+        console.error('Delete task error:', err);
+        if (Platform.OS === 'web') {
+          window.alert('Could not delete the task.');
+        } else {
+          Alert.alert('Delete failed', 'Could not delete the task.');
+        }
+      }
+    };
 
-            setTasks((prev) => prev.filter((task) => task.id !== id));
-
-            try {
-              console.log('Regenerating schedule after delete...');
-              await scheduleApi.generate();
-            } catch (scheduleErr) {
-              console.error('Schedule regenerate error:', scheduleErr);
-            }
-
-            await loadTasks();
-          } catch (err) {
-            console.error('Delete task error:', err);
-            Alert.alert('Delete failed', 'Could not delete the task.');
-          }
-        },
-      },
-    ]);
+    if (Platform.OS === 'web') {
+      if (window.confirm('Are you sure you want to delete this task?')) {
+        await doDelete();
+      }
+    } else {
+      Alert.alert('Delete Task', 'Are you sure you want to delete this task?', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: doDelete },
+      ]);
+    }
   };
 
   const handleCompleteTask = async (id: number) => {
@@ -217,6 +240,16 @@ export default function TasksScreen() {
         <Text style={[styles.meta, { color: theme.subtext }]}>
           ⏱ {item.duration_minutes ?? 30} min
         </Text>
+
+        <Text style={[styles.meta, { color: theme.subtext }]}>
+          {'⭐'.repeat(item.priority ?? 1)}{'☆'.repeat(5 - (item.priority ?? 1))} Priority {item.priority ?? 1}
+        </Text>
+
+        {(item.earliest_start || item.latest_end) && (
+          <Text style={[styles.meta, { color: theme.subtext }]}>
+            🕐 {item.earliest_start ? item.earliest_start.slice(11, 16) : '--:--'} → {item.latest_end ? item.latest_end.slice(11, 16) : '--:--'}
+          </Text>
+        )}
 
         <Text
           style={[
@@ -304,6 +337,91 @@ export default function TasksScreen() {
           ]}
         />
 
+        {/* Priority selector */}
+        <Text style={[styles.fieldLabel, { color: theme.subtext }]}>Priority</Text>
+        <View style={styles.priorityRow}>
+          {[1, 2, 3, 4, 5].map((level) => (
+            <TouchableOpacity
+              key={level}
+              onPress={() => setPriority(level)}
+              style={[
+                styles.priorityBtn,
+                {
+                  backgroundColor: priority === level ? theme.tint : theme.background,
+                  borderColor: priority === level ? theme.tint : theme.border,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.priorityBtnText,
+                  { color: priority === level ? '#fff' : theme.subtext },
+                ]}
+              >
+                {level}
+              </Text>
+            </TouchableOpacity>
+          ))}
+          <Text style={[styles.priorityHint, { color: theme.subtext }]}>
+            {priority === 1 ? 'Low' : priority === 2 ? 'Medium-Low' : priority === 3 ? 'Medium' : priority === 4 ? 'High' : 'Urgent'}
+          </Text>
+        </View>
+
+        {/* Time window toggle */}
+        <TouchableOpacity
+          onPress={() => setShowTimeWindow((v) => !v)}
+          style={styles.timeWindowToggle}
+        >
+          <Text style={[styles.timeWindowToggleText, { color: theme.tint }]}>
+            {showTimeWindow ? '▲ Hide time window' : '▼ Set time window (optional)'}
+          </Text>
+        </TouchableOpacity>
+
+        {showTimeWindow && (
+          <View style={styles.timeWindowRow}>
+            <View style={styles.timeWindowField}>
+              <Text style={[styles.fieldLabel, { color: theme.subtext }]}>Earliest start</Text>
+              <TextInput
+                placeholder="HH:MM"
+                placeholderTextColor={theme.subtext}
+                value={earliestStart}
+                onChangeText={setEarliestStart}
+                keyboardType="numbers-and-punctuation"
+                maxLength={5}
+                style={[
+                  styles.input,
+                  styles.timeInput,
+                  {
+                    color: theme.text,
+                    borderColor: theme.border,
+                    backgroundColor: theme.background,
+                  },
+                ]}
+              />
+            </View>
+            <View style={styles.timeWindowField}>
+              <Text style={[styles.fieldLabel, { color: theme.subtext }]}>Latest end</Text>
+              <TextInput
+                placeholder="HH:MM"
+                placeholderTextColor={theme.subtext}
+                value={latestEnd}
+                onChangeText={setLatestEnd}
+                keyboardType="numbers-and-punctuation"
+                maxLength={5}
+                style={[
+                  styles.input,
+                  styles.timeInput,
+                  {
+                    color: theme.text,
+                    borderColor: theme.border,
+                    backgroundColor: theme.background,
+                  },
+                ]}
+              />
+            </View>
+          </View>
+        )}
+
         <Button
           label={addingTask ? 'Adding...' : 'Add Task'}
           onPress={handleAddTask}
@@ -375,6 +493,50 @@ const styles = StyleSheet.create({
   },
   deleteButtonWrap: {
     marginTop: Spacing.sm,
+  },
+  fieldLabel: {
+    ...Typography.caption,
+    marginBottom: 4,
+    marginTop: Spacing.xs,
+  },
+  priorityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: Spacing.sm,
+  },
+  priorityBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  priorityBtnText: {
+    ...Typography.label,
+    fontWeight: '600',
+  },
+  priorityHint: {
+    ...Typography.caption,
+    marginLeft: 4,
+  },
+  timeWindowToggle: {
+    marginBottom: Spacing.sm,
+  },
+  timeWindowToggleText: {
+    ...Typography.bodySm,
+  },
+  timeWindowRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  timeWindowField: {
+    flex: 1,
+  },
+  timeInput: {
+    marginBottom: 0,
   },
   centerState: {
     alignItems: 'center',
